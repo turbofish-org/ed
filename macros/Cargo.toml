@@ -1,8 +1,10 @@
 [package]
-name = "ed-macros"
+name = "ed-derive"
 version = "0.1.0"
 authors = ["Matt Bell <mappum@gmail.com>"]
 edition = "2018"
+description = "Derive macros for the ed crate"
+license = "MIT"
 
 [lib]
 proc-macro = true
