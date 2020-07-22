@@ -1,0 +1,10 @@
+[package]
+name = "ed"
+version = "0.1.0"
+authors = ["Matt Bell <mappum@gmail.com>"]
+edition = "2018"
+description = "Encode and Decode traits"
+
+[dependencies]
+failure = "0.1.8"
+seq-macro = "0.1.5"

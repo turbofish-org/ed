@@ -1,0 +1,13 @@
+[package]
+name = "ed-macros"
+version = "0.1.0"
+authors = ["Matt Bell <mappum@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0.17"
+proc-macro2 = "1.0.10"
+quote = "1.0.3"
