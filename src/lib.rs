@@ -4,6 +4,8 @@ use std::io::{Read, Write};
 use failure::{bail, format_err};
 use seq_macro::seq;
 
+pub use ed_derive::*;
+
 pub type Result<T> = std::result::Result<T, failure::Error>;
 
 pub trait Encode {
