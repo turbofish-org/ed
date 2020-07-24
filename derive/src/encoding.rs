@@ -15,9 +15,9 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     field_names_minus_last.pop();
 
     let output = quote! {
-        impl orga::Encode for #name {
-            fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> orga::Result<()> {
-                fn assert_trait_bounds<T: orga::Encode + orga::Terminated>(_: &T) {}
+        impl ed::Encode for #name {
+            fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> ed::Result<()> {
+                fn assert_trait_bounds<T: ed::Encode + ed::Terminated>(_: &T) {}
                 #(assert_trait_bounds(&self.#field_names_minus_last);)*
 
                 #(self.#field_names.encode_into(&mut dest)?;)*
@@ -25,7 +25,7 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 Ok(())
             }
 
-            fn encoding_length(&self) -> orga::Result<usize> {
+            fn encoding_length(&self) -> ed::Result<usize> {
                 Ok(
                     0 #( + self.#field_names.encoding_length()?)*
                 )
@@ -44,16 +44,16 @@ pub fn derive_decode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let field_names: Vec<_> = struct_fields(&item).map(|field| &field.ident).collect();
 
     let output = quote! {
-        impl orga::Decode for #name {
-            fn decode<R: std::io::Read>(mut input: R) -> orga::Result<Self> {
+        impl ed::Decode for #name {
+            fn decode<R: std::io::Read>(mut input: R) -> ed::Result<Self> {
                 Ok(Self {
                     #(
-                        #field_names: orga::Decode::decode(&mut input)?,
+                        #field_names: ed::Decode::decode(&mut input)?,
                     )*
                 })
             }
 
-            fn decode_into<R: std::io::Read>(&mut self, mut input: R) -> orga::Result<()> {
+            fn decode_into<R: std::io::Read>(&mut self, mut input: R) -> ed::Result<()> {
                 #(
                     self.#field_names.decode_into(&mut input)?;
                 )*
