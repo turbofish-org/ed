@@ -336,21 +336,25 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
 impl<T: Decode + Terminated> Decode for Vec<T> {
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
-        let mut vec = vec![];
+        let mut vec = Vec::with_capacity(128);
         vec.decode_into(input)?;
         Ok(vec)
     }
 
-    fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
-        let mut input = EofReader::new(input);
+    #[inline]
+    fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
         let old_len = self.len();
 
+        let mut bytes = Vec::with_capacity(256);
+        input.read_to_end(&mut bytes)?;
+
+        let mut slice = bytes.as_slice();
         let mut i = 0;
-        while !input.eof()? {
+        while slice.len() > 0 {
             if i < old_len {
-                self[i].decode_into(&mut input)?;
+                self[i].decode_into(&mut slice)?;
             } else {
-                let el = T::decode(&mut input)?;
+                let el = T::decode(&mut slice)?;
                 self.push(el);
             }
 
@@ -381,53 +385,6 @@ impl<T: Encode + Terminated> Encode for [T] {
             sum += element.encoding_length()?;
         }
         Ok(sum)
-    }
-}
-
-struct EofReader<R: Read> {
-    inner: R,
-    next_byte: Option<u8>
-}
-
-impl<R: Read> EofReader<R> {
-    fn new(read: R) -> Self {
-        EofReader {
-            inner: read,
-            next_byte: None
-        }
-    }
-
-    fn eof(&mut self) -> Result<bool> {
-        if let Some(_) = self.next_byte {
-            return Ok(false);
-        }
-
-        let mut buf = [0];
-        let bytes_read = self.inner.read(&mut buf)?;
-        if bytes_read == 0 {
-            Ok(true)
-        } else {
-            self.next_byte = Some(buf[0]);
-            Ok(false)
-        }
-    }
-}
-
-type IoResult<T> = std::result::Result<T, std::io::Error>;
-impl<R: Read> Read for EofReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-        if buf.len() == 0 {
-            return Ok(0)
-        }
-
-        match self.next_byte.take() {
-            Some(byte) => {
-                buf[0] = byte;
-                let bytes_read = self.inner.read(&mut buf[1..])?;
-                Ok(1 + bytes_read)
-            },
-            None => self.inner.read(buf)
-        }
     }
 }
 
