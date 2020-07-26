@@ -12,6 +12,7 @@ pub trait Encode {
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()>;
     fn encoding_length(&self) -> Result<usize>;
 
+    #[inline]
     fn encode(&self) -> Result<Vec<u8>> {
         let length = self.encoding_length()?;
         let mut bytes = Vec::with_capacity(length);
@@ -23,6 +24,7 @@ pub trait Encode {
 pub trait Decode: Sized {
     fn decode<R: Read>(input: R) -> Result<Self>;
 
+    #[inline]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         let value = Self::decode(input)?;
         *self = value;
@@ -35,18 +37,21 @@ pub auto trait Terminated {}
 macro_rules! int_impl {
     ($type:ty, $length:expr) => {
         impl Encode for $type {
+            #[inline]
             fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
                 let bytes = self.to_be_bytes();
                 dest.write_all(&bytes[..])?;
                 Ok(())
             }
 
+            #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 Ok($length)
             }
         }
 
         impl Decode for $type {
+            #[inline]
             fn decode<R: Read>(mut input: R) -> Result<Self> {
                 let mut bytes = [0; $length];
                 input.read_exact(&mut bytes[..])?;
@@ -71,18 +76,21 @@ int_impl!(i128, 16);
 
 
 impl Encode for bool {
+    #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         let bytes = [ *self as u8 ];
         dest.write_all(&bytes[..])?;
         Ok(())
     }
 
+    #[inline]
     fn encoding_length(&self) -> Result<usize> {
         Ok(1)
     }
 }
 
 impl Decode for bool {
+    #[inline]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
         let mut buf = [0; 1];
         input.read_exact(&mut buf[..])?;
@@ -97,6 +105,7 @@ impl Decode for bool {
 impl Terminated for bool {}
 
 impl<T: Encode> Encode for Option<T> {
+    #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
             None => dest.write_all(&[0]).map_err(|err| format_err!("{}", err)),
@@ -107,6 +116,7 @@ impl<T: Encode> Encode for Option<T> {
         }
     }
 
+    #[inline]
     fn encoding_length(&self) -> Result<usize> {
         match self {
             None => Ok(1),
@@ -116,12 +126,14 @@ impl<T: Encode> Encode for Option<T> {
 }
 
 impl<T: Decode> Decode for Option<T> {
+    #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         let mut option: Option<T> = None;
         option.decode_into(input)?;
         Ok(option)
     }
 
+    #[inline]
     fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
         let mut byte = [0; 1];
         input.read_exact(&mut byte[..])?;
@@ -142,16 +154,19 @@ impl<T: Decode> Decode for Option<T> {
 impl<T: Terminated> Terminated for Option<T> {}
 
 impl Encode for () {
+    #[inline]
     fn encode_into<W: Write>(&self, _: &mut W) -> Result<()> {
         Ok(())
     }
 
+    #[inline]
     fn encoding_length(&self) -> Result<usize> {
         Ok(0)
     }
 }
 
 impl Decode for () {
+    #[inline]
     fn decode<R: Read>(_: R) -> Result<Self> {
         Ok(())
     }
@@ -163,6 +178,7 @@ macro_rules! tuple_impl {
     ($( $type:ident ),*; $last_type:ident) => {
         impl<$($type: Encode + Terminated,)* $last_type: Encode> Encode for ($($type,)* $last_type,) {
             #[allow(non_snake_case, unused_mut)]
+            #[inline]
             fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
                 let ($($type,)* $last_type,) = self;
                 $($type.encode_into(&mut dest)?;)*
@@ -170,6 +186,7 @@ macro_rules! tuple_impl {
             }
 
             #[allow(non_snake_case)]
+            #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 let ($($type,)* $last_type,) = self;
                 Ok(
@@ -181,6 +198,7 @@ macro_rules! tuple_impl {
 
         impl<$($type: Decode + Terminated,)* $last_type: Decode> Decode for ($($type,)* $last_type,) {
             #[allow(unused_mut)]
+            #[inline]
             fn decode<R: Read>(mut input: R) -> Result<Self> {
                 Ok((
                     $($type::decode(&mut input)?,)*
@@ -189,6 +207,7 @@ macro_rules! tuple_impl {
             }
 
             #[allow(non_snake_case, unused_mut)]
+            #[inline]
             fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
                 let ($($type,)* $last_type,) = self;
                 $($type.decode_into(&mut input)?;)*
@@ -213,6 +232,7 @@ macro_rules! array_impl {
     ($length:expr) => {
         impl<T: Encode + Terminated> Encode for [T; $length] {
             #[allow(non_snake_case, unused_mut, unused_variables)]
+            #[inline]
             fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
                 for element in self[..].iter() {
                     element.encode_into(&mut dest)?;
@@ -221,6 +241,7 @@ macro_rules! array_impl {
             }
 
             #[allow(non_snake_case)]
+            #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 let mut sum = 0;
                 for element in self[..].iter() {
@@ -232,6 +253,7 @@ macro_rules! array_impl {
 
         impl<T: Decode + Terminated> Decode for [T; $length] {
             #[allow(unused_variables, unused_mut)]
+            #[inline]
             fn decode<R: Read>(mut input: R) -> Result<Self> {
                 seq!(N in 0..$length {
                     let mut array = [
@@ -241,6 +263,7 @@ macro_rules! array_impl {
                 Ok(array)
             }
 
+            #[inline]
             fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
                 for i in 0..$length {
                     T::decode_into(&mut self[i], &mut input)?;
@@ -292,6 +315,7 @@ array_impl!(128);
 array_impl!(256);
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
+    #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
         for element in self.iter() {
             element.encode_into(&mut dest)?;
@@ -299,6 +323,7 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
         Ok(())
     }
 
+    #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
         for element in self.iter() {
@@ -309,6 +334,7 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
 }
 
 impl<T: Decode + Terminated> Decode for Vec<T> {
+    #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         let mut vec = vec![];
         vec.decode_into(input)?;
@@ -340,6 +366,7 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
 }
 
 impl<T: Encode + Terminated> Encode for [T] {
+    #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
         for element in self[..].iter() {
             element.encode_into(&mut dest)?;
@@ -347,6 +374,7 @@ impl<T: Encode + Terminated> Encode for [T] {
         Ok(())
     }
 
+    #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
         for element in self[..].iter() {

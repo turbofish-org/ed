@@ -16,6 +16,7 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let output = quote! {
         impl ed::Encode for #name {
+            #[inline]
             fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> ed::Result<()> {
                 fn assert_trait_bounds<T: ed::Encode + ed::Terminated>(_: &T) {}
                 #(assert_trait_bounds(&self.#field_names_minus_last);)*
@@ -25,6 +26,7 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 Ok(())
             }
 
+            #[inline]
             fn encoding_length(&self) -> ed::Result<usize> {
                 Ok(
                     0 #( + self.#field_names.encoding_length()?)*
@@ -45,6 +47,7 @@ pub fn derive_decode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let output = quote! {
         impl ed::Decode for #name {
+            #[inline]
             fn decode<R: std::io::Read>(mut input: R) -> ed::Result<Self> {
                 Ok(Self {
                     #(
@@ -53,6 +56,7 @@ pub fn derive_decode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 })
             }
 
+            #[inline]
             fn decode_into<R: std::io::Read>(&mut self, mut input: R) -> ed::Result<()> {
                 #(
                     self.#field_names.decode_into(&mut input)?;

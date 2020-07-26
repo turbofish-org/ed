@@ -11,3 +11,9 @@ failure = "0.1.8"
 seq-macro = "0.1.5"
 ed-derive = "0.1.1"
 
+[profile.bench]
+lto = true
+
+[profile.release]
+lto = true
+
