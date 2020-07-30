@@ -228,91 +228,49 @@ tuple_impl!(A, B, C, D; E);
 tuple_impl!(A, B, C, D, E; F);
 tuple_impl!(A, B, C, D, E, F; G);
 
-macro_rules! array_impl {
-    ($length:expr) => {
-        impl<T: Encode + Terminated> Encode for [T; $length] {
-            #[allow(non_snake_case, unused_mut, unused_variables)]
-            #[inline]
-            fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
-                for element in self[..].iter() {
-                    element.encode_into(&mut dest)?;
-                }
-                Ok(())
-            }
-
-            #[allow(non_snake_case)]
-            #[inline]
-            fn encoding_length(&self) -> Result<usize> {
-                let mut sum = 0;
-                for element in self[..].iter() {
-                    sum += element.encoding_length()?;
-                }
-                Ok(sum)
-            }
+impl<const N: usize, T: Encode + Terminated> Encode for [T; N] {
+    #[allow(non_snake_case, unused_mut, unused_variables)]
+    #[inline]
+    fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
+        for element in self[..].iter() {
+            element.encode_into(&mut dest)?;
         }
+        Ok(())
+    }
 
-        impl<T: Decode + Terminated> Decode for [T; $length] {
-            #[allow(unused_variables, unused_mut)]
-            #[inline]
-            fn decode<R: Read>(mut input: R) -> Result<Self> {
-                seq!(N in 0..$length {
-                    let mut array = [
-                        #(T::decode(&mut input)?,)*
-                    ];
-                });
-                Ok(array)
-            }
-
-            #[inline]
-            fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
-                for i in 0..$length {
-                    T::decode_into(&mut self[i], &mut input)?;
-                }
-                Ok(())
-            }
+    #[allow(non_snake_case)]
+    #[inline]
+    fn encoding_length(&self) -> Result<usize> {
+        let mut sum = 0;
+        for element in self[..].iter() {
+            sum += element.encoding_length()?;
         }
-
-        impl<T: Terminated> Terminated for [T; $length] {}
-    };
+        Ok(sum)
+    }
 }
 
-array_impl!(0);
-array_impl!(1);
-array_impl!(2);
-array_impl!(3);
-array_impl!(4);
-array_impl!(5);
-array_impl!(6);
-array_impl!(7);
-array_impl!(8);
-array_impl!(9);
-array_impl!(10);
-array_impl!(11);
-array_impl!(12);
-array_impl!(13);
-array_impl!(14);
-array_impl!(15);
-array_impl!(16);
-array_impl!(17);
-array_impl!(18);
-array_impl!(19);
-array_impl!(20);
-array_impl!(21);
-array_impl!(22);
-array_impl!(23);
-array_impl!(24);
-array_impl!(25);
-array_impl!(26);
-array_impl!(27);
-array_impl!(28);
-array_impl!(29);
-array_impl!(30);
-array_impl!(31);
-array_impl!(32);
-array_impl!(33);
-array_impl!(64);
-array_impl!(128);
-array_impl!(256);
+impl<const N: usize, T: Decode + Terminated> Decode for [T; N] {
+    #[allow(unused_variables, unused_mut)]
+    #[inline]
+    fn decode<R: Read>(mut input: R) -> Result<Self> {
+        seq!(N in 0..N {
+            let mut array = [
+                #(T::decode(&mut input)?,)
+            ];
+        });
+        Ok(array)
+    }
+
+    #[inline]
+    fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
+        for i in 0..N {
+            T::decode_into(&mut self[i], &mut input)?;
+        }
+        Ok(())
+    }
+}
+
+impl<const N: usize, T: Terminated> Terminated for [T; N] {}
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[inline]
