@@ -1,8 +1,8 @@
 #![feature(optin_builtin_traits)]
 
-use std::io::{Read, Write};
 use failure::{bail, format_err};
 use seq_macro::seq;
+use std::io::{Read, Write};
 
 pub use ed_derive::*;
 
@@ -74,11 +74,10 @@ int_impl!(i32, 4);
 int_impl!(i64, 8);
 int_impl!(i128, 16);
 
-
 impl Encode for bool {
     #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
-        let bytes = [ *self as u8 ];
+        let bytes = [*self as u8];
         dest.write_all(&bytes[..])?;
         Ok(())
     }
@@ -97,7 +96,7 @@ impl Decode for bool {
         match buf[0] {
             0 => Ok(false),
             1 => Ok(true),
-            byte => bail!("Unexpected byte {}", byte)
+            byte => bail!("Unexpected byte {}", byte),
         }
     }
 }
@@ -142,9 +141,9 @@ impl<T: Decode> Decode for Option<T> {
             0 => *self = None,
             1 => match self {
                 None => *self = Some(T::decode(input)?),
-                Some(value) => value.decode_into(input)?
+                Some(value) => value.decode_into(input)?,
             },
-            byte => bail!("Unexpected byte {}", byte)
+            byte => bail!("Unexpected byte {}", byte),
         };
 
         Ok(())
@@ -385,6 +384,30 @@ impl<T: Encode + Terminated> Encode for [T] {
             sum += element.encoding_length()?;
         }
         Ok(sum)
+    }
+}
+
+impl<T: Encode> Encode for Box<T> {
+    #[inline]
+    fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
+        (**self).encode_into(dest)
+    }
+
+    #[inline]
+    fn encoding_length(&self) -> Result<usize> {
+        (**self).encoding_length()
+    }
+}
+
+impl<T: Decode> Decode for Box<T> {
+    #[inline]
+    fn decode<R: Read>(input: R) -> Result<Self> {
+        T::decode(input).map(|v| v.into())
+    }
+
+    #[inline]
+    fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
+        (**self).decode_into(input)
     }
 }
 
