@@ -1,4 +1,6 @@
-//! `ed` is a minimalist crate for deterministic binary encodings.
+//! *`ed` is a minimalist crate for deterministic binary encodings.*
+//!
+//! ## Overview
 //!
 //! It provides `Encode` and `Decode` traits which can be implemented for any
 //! type that can be converted to or from bytes, and implements these traits for
@@ -22,6 +24,47 @@
 //! Another property of this crate is a focus on determinism (important for
 //! cryptographically hashed types) - built-in encodings are always big-endian
 //! and there are no provided encodings for floating point numbers or `usize`.
+//!
+//! ## Usage 
+//!
+//! ```rust
+//! use ed::{Encode, Decode};
+//!
+//! # fn main() -> ed::Result<()> {
+//! // traits are implemented for built-in types
+//! let bytes = 123u32.encode()?; // `bytes` is a Vec<u8>
+//! let n = u32::decode(bytes.as_slice())?; // `n` is a u32
+//!
+//! // derive macros are available
+//! #[derive(Encode, Decode)]
+//! # #[derive(PartialEq, Eq, Debug)]
+//! struct Foo {
+//!   bar: (u32, u32),
+//!   baz: Vec<u8>
+//! }
+//!
+//! // encoding and decoding can be done in-place to reduce allocations
+//!
+//! let mut bytes = vec![0xba; 40];
+//! let mut foo = Foo {
+//!   bar: (0, 0),
+//!   baz: Vec::with_capacity(32)
+//! };
+//! 
+//! // in-place decode, re-using pre-allocated `foo.baz` vec
+//! foo.decode_into(bytes.as_slice())?;
+//! assert_eq!(foo, Foo {
+//!   bar: (0xbabababa, 0xbabababa),
+//!   baz: vec![0xba; 32]
+//! });
+//! 
+//! // in-place encode, into pre-allocated `bytes` vec
+//! bytes.clear();
+//! foo.encode_into(&mut bytes)?;
+//!
+//! # Ok(())
+//! # }
+//! ```
 
 #![feature(optin_builtin_traits)]
 
