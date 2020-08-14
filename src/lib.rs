@@ -1,3 +1,19 @@
+//! `ed` is a minimalist crate for deterministic binary encodings.
+//!
+//! It provides `Encode` and `Decode` traits which can be implemented for any
+//! type that can be converted to or from bytes, and implements these traits for
+//! many built-in Rust types. It also provides derive macros so that `Encode`
+//! and `Decode` can be easily derived for structs.
+//!
+//! `ed` is far simpler than `serde` because it does not attempt to create an
+//! abstraction which allows arbitrary kinds of encoding (JSON, MessagePack,
+//! etc.), and instead forces encodings to be decided on by the top-level type
+//! author. It is also significantly faster.
+//!
+//! This crate has a focus on determinism (important for cryptographically
+//! hashed types) - so encodings are always big-endian and do not support
+//! floating point numbers or `usize`.
+
 #![feature(optin_builtin_traits)]
 
 use failure::{bail, format_err};
@@ -6,12 +22,30 @@ use std::io::{Read, Write};
 
 pub use ed_derive::*;
 
+/// A Result bound to the standard `ed` error type.
 pub type Result<T> = std::result::Result<T, failure::Error>;
 
+/// A trait for values that can be encoded into bytes deterministically.
 pub trait Encode {
+    /// Writes the encoded representation of the value to the destination
+    /// writer. Can error due to either a write error from `dest`, or an
+    /// encoding error for types where invalid values are possible.
+    ///
+    /// It may be more convenient to call [`encode`](#method.encode) which
+    /// returns bytes, however `encode_into` will often be more efficient since
+    /// it can write the encoding without necessarily allocating a new
+    /// `Vec<u8>`.
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()>;
+
+    /// Calculates the length of the encoding for this value. Can error for
+    /// types where invalid values are possible.
     fn encoding_length(&self) -> Result<usize>;
 
+    /// Returns the encoded representation of the value as a `Vec<u8>`.
+    ///
+    /// While this method is convenient, it will often be more efficient to call
+    /// [`encode_into`](#method.encode_into) since `encode` usually involves
+    /// allocating a new `Vec<u8>`.
     #[inline]
     fn encode(&self) -> Result<Vec<u8>> {
         let length = self.encoding_length()?;
@@ -21,9 +55,20 @@ pub trait Encode {
     }
 }
 
+/// A trait for values that can be decoded from bytes deterministically.
 pub trait Decode: Sized {
+    /// Reads bytes from the reader and returns the decoded value.
+    ///
+    /// When possible, calling [`decode_into`](#method.decode_into) will often
+    /// be more efficient since it lets the caller reuse memory to avoid
+    /// allocating for fields with types such as `Vec<T>`.
     fn decode<R: Read>(input: R) -> Result<Self>;
 
+    /// Reads bytes from the reader and mutates self to the decoded value.
+    ///
+    /// This is often more efficient than calling [`decode`](#method.decode)
+    /// when reading fields with heap-allocated types such as `Vec<T>` since it
+    /// can reuse the memory already allocated in self.
     #[inline]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         let value = Self::decode(input)?;
@@ -32,6 +77,19 @@ pub trait Decode: Sized {
     }
 }
 
+/// A type is `Terminated` the length of the value being read can be determined
+/// when decoding.
+///
+/// Since `Terminated` is an auto trait, it is automatically present for any
+/// type made of fields which are all `Terminated`.
+///
+/// Consider a type like `u32` - it is always 4 bytes long. If a slice of length
+/// 5 was passed to its `decode` method, it would know to stop reading after the
+/// 4th byte, which means it is `Terminated`.
+///
+/// For an example of something which is NOT terminated, consider `Vec<u8>`. Its
+/// encoding and decoding do not use a length prefix or end with a null byte, so
+/// `decode` would have no way to know where to stop reading.
 pub auto trait Terminated {}
 
 macro_rules! int_impl {
