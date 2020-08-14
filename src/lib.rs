@@ -2,7 +2,7 @@
 //!
 //! ## Overview
 //!
-//! It provides `Encode` and `Decode` traits which can be implemented for any
+//! This crate provides `Encode` and `Decode` traits which can be implemented for any
 //! type that can be converted to or from bytes, and implements these traits for
 //! many built-in Rust types. It also provides derive macros so that `Encode`
 //! and `Decode` can be easily derived for structs.
