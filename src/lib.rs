@@ -25,7 +25,7 @@
 //! cryptographically hashed types) - built-in encodings are always big-endian
 //! and there are no provided encodings for floating point numbers or `usize`.
 //!
-//! ## Usage 
+//! ## Usage
 //!
 //! ```rust
 //! use ed::{Encode, Decode};
@@ -50,14 +50,14 @@
 //!   bar: (0, 0),
 //!   baz: Vec::with_capacity(32)
 //! };
-//! 
+//!
 //! // in-place decode, re-using pre-allocated `foo.baz` vec
 //! foo.decode_into(bytes.as_slice())?;
 //! assert_eq!(foo, Foo {
 //!   bar: (0xbabababa, 0xbabababa),
 //!   baz: vec![0xba; 32]
 //! });
-//! 
+//!
 //! // in-place encode, into pre-allocated `bytes` vec
 //! bytes.clear();
 //! foo.encode_into(&mut bytes)?;
@@ -66,7 +66,7 @@
 //! # }
 //! ```
 
-#![feature(optin_builtin_traits)]
+#![feature(auto_traits)]
 
 use failure::{bail, format_err};
 use seq_macro::seq;
