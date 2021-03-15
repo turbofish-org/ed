@@ -66,7 +66,7 @@
 //! # }
 //! ```
 
-#![feature(optin_builtin_traits)]
+#![feature(auto_traits)]
 
 use failure::{bail, format_err};
 use seq_macro::seq;
