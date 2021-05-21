@@ -677,4 +677,11 @@ mod tests {
         let bytes = [0, 1, 0, 2, 0, 3, 0];
         let _: Vec<u16> = Decode::decode(&bytes[..]).unwrap();
     }
+
+    #[test]
+    fn test_encode_bool() {
+        let value: bool = true;
+        let bytes = value.encode().unwrap();
+        assert_eq!(bytes.as_slice(), &[1]);
+    }
 }
