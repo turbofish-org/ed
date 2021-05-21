@@ -684,4 +684,25 @@ mod tests {
         let bytes = value.encode().unwrap();
         assert_eq!(bytes.as_slice(), &[1]);
     }
+
+    #[test]
+    fn test_decode_bool_true() {
+        let bytes = vec![1];
+        let decoded_value: bool = Decode::decode(bytes.as_slice()).unwrap();
+        assert_eq!(decoded_value, true);
+    }
+
+    #[test]
+    fn test_decode_bool_false() {
+        let bytes = vec![0];
+        let decoded_value: bool = Decode::decode(bytes.as_slice()).unwrap();
+        assert_eq!(decoded_value, false);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unexpected byte 42")]
+    fn test_decode_bool_bail() {
+        let bytes = vec![42];
+        let _: bool = Decode::decode(bytes.as_slice()).unwrap();
+    }
 }
