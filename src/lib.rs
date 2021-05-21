@@ -705,4 +705,19 @@ mod tests {
         let bytes = vec![42];
         let _: bool = Decode::decode(bytes.as_slice()).unwrap();
     }
+
+    #[test]
+    fn test_default_decode() {
+        struct Foo;
+
+        impl Decode for Foo {
+            fn decode<R: Read>(input: R) -> Result<Self>{
+                Ok(Foo)
+            }
+        }
+
+        let bytes = vec![42, 12, 68];
+        let mut foo: Foo = Foo;
+        foo.decode_into(bytes.as_slice()).unwrap();
+    }
 }
