@@ -769,7 +769,6 @@ mod tests {
         let forty_two = Box::new(42);
         let length = forty_two.encoding_length().unwrap();
         assert_eq!(length, 4);
-        
     }
 }
 
