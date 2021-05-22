@@ -25,7 +25,7 @@
 //! cryptographically hashed types) - built-in encodings are always big-endian
 //! and there are no provided encodings for floating point numbers or `usize`.
 //!
-//! ## Usage 
+//! ## Usage
 //!
 //! ```rust
 //! use ed::{Encode, Decode};
@@ -50,14 +50,14 @@
 //!   bar: (0, 0),
 //!   baz: Vec::with_capacity(32)
 //! };
-//! 
+//!
 //! // in-place decode, re-using pre-allocated `foo.baz` vec
 //! foo.decode_into(bytes.as_slice())?;
 //! assert_eq!(foo, Foo {
 //!   bar: (0xbabababa, 0xbabababa),
 //!   baz: vec![0xba; 32]
 //! });
-//! 
+//!
 //! // in-place encode, into pre-allocated `bytes` vec
 //! bytes.clear();
 //! foo.encode_into(&mut bytes)?;
@@ -709,12 +709,12 @@ mod tests {
 
     #[test]
     fn test_default_decode() {
-        struct Foo{
+        struct Foo {
             bar: u8,
         }
 
         impl Decode for Foo {
-            fn decode<R: Read>(input: R) -> Result<Self>{
+            fn decode<R: Read>(input: R) -> Result<Self> {
                 Ok(Foo { bar: 42 })
             }
         }
@@ -727,7 +727,7 @@ mod tests {
 
     #[test]
     fn test_option_encode_into() {
-        let option = Some(0x12u8); 
+        let option = Some(0x12u8);
         let mut vec: Vec<u8> = vec![];
         option.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![1, 18]);
@@ -735,7 +735,7 @@ mod tests {
 
     #[test]
     fn test_option_none_encode_into() {
-        let option: Option<u8> = None; 
+        let option: Option<u8> = None;
         let mut vec: Vec<u8> = vec![];
         option.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![0]);
@@ -775,7 +775,7 @@ mod tests {
     #[test]
     fn test_box_encode_into() {
         let test = Box::new(42);
-        let mut vec =  vec![12];
+        let mut vec = vec![12];
         test.encode_into(&mut vec);
         assert_eq!(*test, 42);
     }
@@ -796,4 +796,3 @@ mod tests {
         assert_eq!(*test, true);
     }
 }
-
