@@ -755,4 +755,12 @@ mod tests {
         option.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(option.unwrap(), 42);
     }
+
+    #[test]
+    fn test_vec_decode_into() {
+        let mut vec: Vec<u8> = vec![42, 42, 42];
+        let bytes = vec![12, 13];
+        vec.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(vec, vec![12, 13]);
+    }
 }
