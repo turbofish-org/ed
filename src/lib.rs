@@ -723,4 +723,33 @@ mod tests {
         foo.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(foo.bar, 42);
     }
+
+    #[test]
+    fn test_option_encode_into() {
+        let option = Some(0x12u8); 
+        let mut vec: Vec<u8> = vec![];
+        option.encode_into(&mut vec).unwrap();
+        assert_eq!(vec, vec![1, 18]);
+    }
+
+    #[test]
+    fn test_option_none_encode_into() {
+        let option: Option<u8> = None; 
+        let mut vec: Vec<u8> = vec![];
+        option.encode_into(&mut vec).unwrap();
+        assert_eq!(vec, vec![0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unexpected byte 42")]
+    fn test_decode_into_bail_option() {
+        let mut option: Option<u8> = Some(42);
+        let bytes = vec![42];
+        option.decode_into(bytes.as_slice()).unwrap();
+    }
+
+    #[test]
+    fn test_decode_into_some_option() {
+
+    }
 }
