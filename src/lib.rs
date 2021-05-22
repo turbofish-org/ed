@@ -787,5 +787,13 @@ mod tests {
         let decoded_value: Box<bool> = Decode::decode(test).unwrap();
         assert_eq!(*decoded_value, true);
     }
+
+    #[test]
+    fn test_box_decode_into() {
+        let mut test = Box::new(false);
+        let mut bytes = vec![1];
+        test.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(*test, true);
+    }
 }
 
