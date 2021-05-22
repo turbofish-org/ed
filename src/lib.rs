@@ -708,16 +708,19 @@ mod tests {
 
     #[test]
     fn test_default_decode() {
-        struct Foo;
+        struct Foo{
+            bar: u8,
+        }
 
         impl Decode for Foo {
             fn decode<R: Read>(input: R) -> Result<Self>{
-                Ok(Foo)
+                Ok(Foo { bar: 42 })
             }
         }
 
         let bytes = vec![42, 12, 68];
-        let mut foo: Foo = Foo;
+        let mut foo: Foo = Foo { bar: 41 };
         foo.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(foo.bar, 42);
     }
 }
