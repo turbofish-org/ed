@@ -770,5 +770,13 @@ mod tests {
         let length = forty_two.encoding_length().unwrap();
         assert_eq!(length, 4);
     }
+
+    #[test]
+    fn test_box_encode_into() {
+        let test = Box::new(42);
+        let mut vec =  vec![12];
+        test.encode_into(&mut vec);
+        assert_eq!(*test, 42);
+    }
 }
 
