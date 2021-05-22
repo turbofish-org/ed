@@ -750,6 +750,9 @@ mod tests {
 
     #[test]
     fn test_decode_into_some_option() {
-
+        let mut option: Option<u8> = Some(42);
+        let bytes = vec![1, 42];
+        option.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(option.unwrap(), 42);
     }
 }
