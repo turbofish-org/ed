@@ -572,6 +572,7 @@ impl<T: Decode> Decode for Box<T> {
     #[doc = "Decodes the inner value into a new Box."]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
+        println!("{}", "Hit here");
         T::decode(input).map(|v| v.into())
     }
 
@@ -777,6 +778,14 @@ mod tests {
         let mut vec =  vec![12];
         test.encode_into(&mut vec);
         assert_eq!(*test, 42);
+    }
+
+    #[test]
+    fn test_box_decode() {
+        let mut bytes = vec![1];
+        let test = Box::new(bytes.as_slice());
+        let decoded_value: Box<bool> = Decode::decode(test).unwrap();
+        assert_eq!(*decoded_value, true);
     }
 }
 
