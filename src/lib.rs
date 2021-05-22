@@ -514,7 +514,7 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
 
         let mut slice = bytes.as_slice();
         let mut i = 0;
-        while slice.len() > 0 {
+        while !slice.is_empty() {
             if i < old_len {
                 self[i].decode_into(&mut slice)?;
             } else {
