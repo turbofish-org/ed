@@ -763,4 +763,13 @@ mod tests {
         vec.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(vec, vec![12, 13]);
     }
+
+    #[test]
+    fn test_box_encoding_length() {
+        let forty_two = Box::new(42);
+        let length = forty_two.encoding_length().unwrap();
+        assert_eq!(length, 4);
+        
+    }
 }
+
