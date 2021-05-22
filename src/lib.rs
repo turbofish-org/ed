@@ -572,7 +572,6 @@ impl<T: Decode> Decode for Box<T> {
     #[doc = "Decodes the inner value into a new Box."]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
-        println!("{}", "Hit here");
         T::decode(input).map(|v| v.into())
     }
 
