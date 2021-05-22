@@ -329,6 +329,7 @@ macro_rules! tuple_impl {
             #[doc = "Returns the sum of the encoding lengths of the fields of"]
             #[doc = " the tuple."]
             #[allow(non_snake_case)]
+            #[allow(clippy::needless_question_mark)]
             #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 let ($($type,)* $last_type,) = self;
@@ -421,6 +422,7 @@ macro_rules! array_impl {
             #[doc = " order."]
             #[doc = ""]
             #[doc = "Recursively calls `decode_into` for each element."]
+            #[allow(clippy::reversed_empty_ranges)]
             #[inline]
             fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
                 for i in 0..$length {
