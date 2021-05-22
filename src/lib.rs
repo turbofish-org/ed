@@ -742,14 +742,14 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "Unexpected byte 42")]
-    fn test_decode_into_bail_option() {
+    fn test_bail_option_decode_into() {
         let mut option: Option<u8> = Some(42);
         let bytes = vec![42];
         option.decode_into(bytes.as_slice()).unwrap();
     }
 
     #[test]
-    fn test_decode_into_some_option() {
+    fn test_some_option_decode_into() {
         let mut option: Option<u8> = Some(42);
         let bytes = vec![1, 42];
         option.decode_into(bytes.as_slice()).unwrap();
