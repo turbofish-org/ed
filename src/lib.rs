@@ -622,6 +622,7 @@ impl<T: Decode> Decode for Box<T> {
 #[cfg(test)]
 use mutagen::mutate;
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
