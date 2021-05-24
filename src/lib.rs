@@ -812,13 +812,13 @@ mod tests {
     fn test_box_encode_into() {
         let test = Box::new(42);
         let mut vec = vec![12];
-        test.encode_into(&mut vec);
+        test.encode_into(&mut vec).unwrap();
         assert_eq!(*test, 42);
     }
 
     #[test]
     fn test_box_decode() {
-        let mut bytes = vec![1];
+        let bytes = vec![1];
         let test = Box::new(bytes.as_slice());
         let decoded_value: Box<bool> = Decode::decode(test).unwrap();
         assert_eq!(*decoded_value, true);
@@ -827,7 +827,7 @@ mod tests {
     #[test]
     fn test_box_decode_into() {
         let mut test = Box::new(false);
-        let mut bytes = vec![1];
+        let bytes = vec![1];
         test.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(*test, true);
     }
