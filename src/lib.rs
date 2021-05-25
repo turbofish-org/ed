@@ -796,4 +796,12 @@ mod tests {
         test.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(*test, true);
     }
+
+    #[test]
+    fn test_slice_encode_into() {
+        let vec = vec![1, 2, 1];
+        let slice = &vec[0..3];
+        let mut vec: Vec<u8> = vec![];
+        slice.encode_into(&mut vec);
+    }
 }
