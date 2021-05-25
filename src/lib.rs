@@ -805,4 +805,12 @@ mod tests {
         slice.encode_into(&mut vec);
         assert_eq!(vec, vec![0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1]);
     }
+
+    #[test]
+    fn test_slice_encoding_length() {
+        let vec = vec![1, 2, 1];
+        let slice = &vec[0..3];
+        let size = slice.encoding_length().unwrap();
+        assert_eq!(size, 12);
+    }
 }
