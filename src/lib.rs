@@ -158,7 +158,6 @@ macro_rules! int_impl {
         impl Encode for $type {
             #[doc = "Encodes the integer as fixed-size big-endian bytes."]
             #[inline]
-            #[cfg_attr(test, mutate)]
             fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
                 let bytes = self.to_be_bytes();
                 dest.write_all(&bytes[..])?;
@@ -168,7 +167,6 @@ macro_rules! int_impl {
             #[doc = "Returns the size of the integer in bytes. Will always"]
             #[doc = " return an `Ok` result."]
             #[inline]
-            #[cfg_attr(test, mutate)]
             fn encoding_length(&self) -> Result<usize> {
                 Ok($length)
             }
@@ -177,7 +175,6 @@ macro_rules! int_impl {
         impl Decode for $type {
             #[doc = "Decodes the integer from fixed-size big-endian bytes."]
             #[inline]
-            #[cfg_attr(test, mutate)]
             fn decode<R: Read>(mut input: R) -> Result<Self> {
                 let mut bytes = [0; $length];
                 input.read_exact(&mut bytes[..])?;
@@ -334,7 +331,6 @@ macro_rules! tuple_impl {
             #[doc = "Encodes the fields of the tuple one after another, in"]
             #[doc = " order."]
             #[allow(non_snake_case, unused_mut)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
                 let ($($type,)* $last_type,) = self;
@@ -346,7 +342,6 @@ macro_rules! tuple_impl {
             #[doc = " the tuple."]
             #[allow(non_snake_case)]
             #[allow(clippy::needless_question_mark)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 let ($($type,)* $last_type,) = self;
@@ -361,7 +356,6 @@ macro_rules! tuple_impl {
             #[doc = "Decodes the fields of the tuple one after another, in"]
             #[doc = " order."]
             #[allow(unused_mut)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn decode<R: Read>(mut input: R) -> Result<Self> {
                 Ok((
@@ -375,7 +369,6 @@ macro_rules! tuple_impl {
             #[doc = ""]
             #[doc = "Recursively calls `decode_into` for each field."]
             #[allow(non_snake_case, unused_mut)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
                 let ($($type,)* $last_type,) = self;
@@ -403,7 +396,6 @@ macro_rules! array_impl {
             #[doc = "Encodes the elements of the array one after another, in"]
             #[doc = " order."]
             #[allow(non_snake_case, unused_mut, unused_variables)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
                 for element in self[..].iter() {
@@ -414,7 +406,6 @@ macro_rules! array_impl {
 
             #[doc = "Returns the sum of the encoding lengths of all elements."]
             #[allow(non_snake_case)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 let mut sum = 0;
@@ -429,7 +420,6 @@ macro_rules! array_impl {
             #[doc = "Decodes the elements of the array one after another, in"]
             #[doc = " order."]
             #[allow(unused_variables, unused_mut)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn decode<R: Read>(mut input: R) -> Result<Self> {
                 seq!(N in 0..$length {
@@ -445,7 +435,6 @@ macro_rules! array_impl {
             #[doc = ""]
             #[doc = "Recursively calls `decode_into` for each element."]
             #[allow(clippy::reversed_empty_ranges)]
-            #[cfg_attr(test, mutate)]
             #[inline]
             fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
                 for i in 0..$length {
