@@ -765,6 +765,14 @@ mod tests {
     }
 
     #[test]
+    fn test_option_encoding_length() {
+        let val = 0x12u8;
+        let option = Some(val);
+        let option_length = option.encoding_length().unwrap();
+        let val_length = val.encoding_length().unwrap();
+        assert!(option_length == val_length + 1);
+    }
+    #[test]
     fn test_option_none_encode_into() {
         let option: Option<u8> = None;
         let mut vec: Vec<u8> = vec![];
