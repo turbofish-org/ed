@@ -858,4 +858,11 @@ mod tests {
         let size = slice.encoding_length().unwrap();
         assert_eq!(size, 12);
     }
+
+    #[test]
+    fn test_unit_encoding_length() {
+        let unit = ();
+        let length = unit.encoding_length().unwrap();
+        assert!(length == 0);
+    }
 }
