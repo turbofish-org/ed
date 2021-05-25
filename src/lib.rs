@@ -773,6 +773,13 @@ mod tests {
     }
 
     #[test]
+    fn test_option_none_encoding_length() {
+        let option: Option<u8> = None;
+        let length = option.encoding_length().unwrap();
+        assert!(length == 1);
+    }
+
+    #[test]
     #[should_panic(expected = "Unexpected byte 42")]
     fn test_bail_option_decode_into() {
         let mut option: Option<u8> = Some(42);
