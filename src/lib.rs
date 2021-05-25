@@ -712,6 +712,12 @@ mod tests {
     }
 
     #[test]
+    fn test_encoding_length_bool() {
+        let value: bool = true;
+        let enc_length = value.encoding_length().unwrap();
+        assert!(enc_length == 1);
+    }
+    #[test]
     fn test_decode_bool_true() {
         let bytes = vec![1];
         let decoded_value: bool = Decode::decode(bytes.as_slice()).unwrap();
