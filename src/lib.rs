@@ -25,7 +25,7 @@
 //! cryptographically hashed types) - built-in encodings are always big-endian
 //! and there are no provided encodings for floating point numbers or `usize`.
 //!
-//! ## Usage 
+//! ## Usage
 //!
 //! ```rust
 //! use ed::{Encode, Decode};
@@ -50,14 +50,14 @@
 //!   bar: (0, 0),
 //!   baz: Vec::with_capacity(32)
 //! };
-//! 
+//!
 //! // in-place decode, re-using pre-allocated `foo.baz` vec
 //! foo.decode_into(bytes.as_slice())?;
 //! assert_eq!(foo, Foo {
 //!   bar: (0xbabababa, 0xbabababa),
 //!   baz: vec![0xba; 32]
 //! });
-//! 
+//!
 //! // in-place encode, into pre-allocated `bytes` vec
 //! bytes.clear();
 //! foo.encode_into(&mut bytes)?;
@@ -329,6 +329,7 @@ macro_rules! tuple_impl {
             #[doc = "Returns the sum of the encoding lengths of the fields of"]
             #[doc = " the tuple."]
             #[allow(non_snake_case)]
+            #[allow(clippy::needless_question_mark)]
             #[inline]
             fn encoding_length(&self) -> Result<usize> {
                 let ($($type,)* $last_type,) = self;
@@ -421,6 +422,7 @@ macro_rules! array_impl {
             #[doc = " order."]
             #[doc = ""]
             #[doc = "Recursively calls `decode_into` for each element."]
+            #[allow(clippy::reversed_empty_ranges)]
             #[inline]
             fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
                 for i in 0..$length {
@@ -514,7 +516,7 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
 
         let mut slice = bytes.as_slice();
         let mut i = 0;
-        while slice.len() > 0 {
+        while !slice.is_empty() {
             if i < old_len {
                 self[i].decode_into(&mut slice)?;
             } else {
@@ -676,5 +678,139 @@ mod tests {
     fn encode_decode_vec_eof_element() {
         let bytes = [0, 1, 0, 2, 0, 3, 0];
         let _: Vec<u16> = Decode::decode(&bytes[..]).unwrap();
+    }
+
+    #[test]
+    fn test_encode_bool() {
+        let value: bool = true;
+        let bytes = value.encode().unwrap();
+        assert_eq!(bytes.as_slice(), &[1]);
+    }
+
+    #[test]
+    fn test_decode_bool_true() {
+        let bytes = vec![1];
+        let decoded_value: bool = Decode::decode(bytes.as_slice()).unwrap();
+        assert_eq!(decoded_value, true);
+    }
+
+    #[test]
+    fn test_decode_bool_false() {
+        let bytes = vec![0];
+        let decoded_value: bool = Decode::decode(bytes.as_slice()).unwrap();
+        assert_eq!(decoded_value, false);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unexpected byte 42")]
+    fn test_decode_bool_bail() {
+        let bytes = vec![42];
+        let _: bool = Decode::decode(bytes.as_slice()).unwrap();
+    }
+
+    #[test]
+    fn test_default_decode() {
+        struct Foo {
+            bar: u8,
+        }
+
+        impl Decode for Foo {
+            fn decode<R: Read>(input: R) -> Result<Self> {
+                Ok(Foo { bar: 42 })
+            }
+        }
+
+        let bytes = vec![42, 12, 68];
+        let mut foo: Foo = Foo { bar: 41 };
+        foo.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(foo.bar, 42);
+    }
+
+    #[test]
+    fn test_option_encode_into() {
+        let option = Some(0x12u8);
+        let mut vec: Vec<u8> = vec![];
+        option.encode_into(&mut vec).unwrap();
+        assert_eq!(vec, vec![1, 18]);
+    }
+
+    #[test]
+    fn test_option_none_encode_into() {
+        let option: Option<u8> = None;
+        let mut vec: Vec<u8> = vec![];
+        option.encode_into(&mut vec).unwrap();
+        assert_eq!(vec, vec![0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unexpected byte 42")]
+    fn test_bail_option_decode_into() {
+        let mut option: Option<u8> = Some(42);
+        let bytes = vec![42];
+        option.decode_into(bytes.as_slice()).unwrap();
+    }
+
+    #[test]
+    fn test_some_option_decode_into() {
+        let mut option: Option<u8> = Some(0);
+        let bytes = vec![1, 0x12u8];
+        option.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(option.unwrap(), 18);
+    }
+
+    #[test]
+    fn test_vec_decode_into() {
+        let mut vec: Vec<u8> = vec![42, 42, 42];
+        let bytes = vec![12, 13];
+        vec.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(vec, vec![12, 13]);
+    }
+
+    #[test]
+    fn test_box_encoding_length() {
+        let forty_two = Box::new(42);
+        let length = forty_two.encoding_length().unwrap();
+        assert_eq!(length, 4);
+    }
+
+    #[test]
+    fn test_box_encode_into() {
+        let test = Box::new(42);
+        let mut vec = vec![];
+        test.encode_into(&mut vec);
+        assert_eq!(vec, vec![0, 0, 0, 42]);
+    }
+
+    #[test]
+    fn test_box_decode() {
+        let mut bytes = vec![1];
+        let test = Box::new(bytes.as_slice());
+        let decoded_value: Box<bool> = Decode::decode(test).unwrap();
+        assert_eq!(*decoded_value, true);
+    }
+
+    #[test]
+    fn test_box_decode_into() {
+        let mut test = Box::new(false);
+        let mut bytes = vec![1];
+        test.decode_into(bytes.as_slice()).unwrap();
+        assert_eq!(*test, true);
+    }
+
+    #[test]
+    fn test_slice_encode_into() {
+        let vec = vec![1, 2, 1];
+        let slice = &vec[0..3];
+        let mut vec: Vec<u8> = vec![];
+        slice.encode_into(&mut vec);
+        assert_eq!(vec, vec![0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1]);
+    }
+
+    #[test]
+    fn test_slice_encoding_length() {
+        let vec = vec![1, 2, 1];
+        let slice = &vec[0..3];
+        let size = slice.encoding_length().unwrap();
+        assert_eq!(size, 12);
     }
 }
