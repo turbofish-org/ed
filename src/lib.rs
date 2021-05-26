@@ -776,9 +776,9 @@ mod tests {
     #[test]
     fn test_box_encode_into() {
         let test = Box::new(42);
-        let mut vec = vec![12];
+        let mut vec = vec![];
         test.encode_into(&mut vec);
-        assert_eq!(*test, 42);
+        assert_eq!(vec, vec![0, 0, 0, 42]);
     }
 
     #[test]
