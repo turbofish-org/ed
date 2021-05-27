@@ -99,6 +99,7 @@ pub trait Encode {
     /// [`encode_into`](#method.encode_into) since `encode` usually involves
     /// allocating a new `Vec<u8>`.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encode(&self) -> Result<Vec<u8>> {
         let length = self.encoding_length()?;
         let mut bytes = Vec::with_capacity(length);
@@ -129,6 +130,7 @@ pub trait Decode: Sized {
     /// [`decode`](#method.decode) for ease of implementation, but should be
     /// overridden when in-place decoding is possible.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         let value = Self::decode(input)?;
         *self = value;
@@ -198,6 +200,7 @@ int_impl!(i128, 16);
 impl Encode for bool {
     /// Encodes the boolean as a single byte: 0 for false or 1 for true.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         let bytes = [*self as u8];
         dest.write_all(&bytes[..])?;
@@ -206,6 +209,7 @@ impl Encode for bool {
 
     /// Always returns Ok(1).
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         Ok(1)
     }
@@ -215,6 +219,7 @@ impl Decode for bool {
     /// Decodes the boolean from a single byte: 0 for false or 1 for true.
     /// Errors for any other value.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
         let mut buf = [0; 1];
         input.read_exact(&mut buf[..])?;
@@ -232,6 +237,7 @@ impl<T: Encode> Encode for Option<T> {
     /// Encodes as a 0 byte for `None`, or as a 1 byte followed by the encoding of
     /// the inner value for `Some`.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
             None => dest.write_all(&[0]).map_err(|err| format_err!("{}", err)),
@@ -245,6 +251,7 @@ impl<T: Encode> Encode for Option<T> {
     /// Length will be 1 for `None`, or 1 plus the encoding length of the inner
     /// value for `Some`.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         match self {
             None => Ok(1),
@@ -257,6 +264,7 @@ impl<T: Decode> Decode for Option<T> {
     /// Decodes a 0 byte as `None`, or a 1 byte followed by the encoding of the
     /// inner value as `Some`. Errors for all other values.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(input: R) -> Result<Self> {
         let mut option: Option<T> = None;
         option.decode_into(input)?;
@@ -270,6 +278,7 @@ impl<T: Decode> Decode for Option<T> {
     // on the inner type. When the first byte is 1 and self is `None`, `decode`
     // will be called for the inner type.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
         let mut byte = [0; 1];
         input.read_exact(&mut byte[..])?;
@@ -292,12 +301,14 @@ impl<T: Terminated> Terminated for Option<T> {}
 impl Encode for () {
     /// Encoding a unit tuple is a no-op.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, _: &mut W) -> Result<()> {
         Ok(())
     }
 
     /// Always returns Ok(0).
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         Ok(0)
     }
@@ -306,6 +317,7 @@ impl Encode for () {
 impl Decode for () {
     /// Returns a unit tuple without reading any bytes.
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(_: R) -> Result<Self> {
         Ok(())
     }
@@ -477,6 +489,7 @@ array_impl!(256);
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
     #[inline]
+    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
         for element in self.iter() {
             element.encode_into(&mut dest)?;
@@ -485,6 +498,7 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
     }
 
     #[doc = "Returns the sum of the encoding lengths of all elements."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
@@ -497,6 +511,7 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
 
 impl<T: Decode + Terminated> Decode for Vec<T> {
     #[doc = "Decodes the elements of the vector one after another, in order."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         let mut vec = Vec::with_capacity(128);
@@ -507,6 +522,7 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
     #[doc = ""]
     #[doc = "Recursively calls `decode_into` for each element."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
         let old_len = self.len();
@@ -537,6 +553,7 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
 
 impl<T: Encode + Terminated> Encode for [T] {
     #[doc = "Encodes the elements of the slice one after another, in order."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
         for element in self[..].iter() {
@@ -546,6 +563,7 @@ impl<T: Encode + Terminated> Encode for [T] {
     }
 
     #[doc = "Returns the sum of the encoding lengths of all elements."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
@@ -558,12 +576,14 @@ impl<T: Encode + Terminated> Encode for [T] {
 
 impl<T: Encode> Encode for Box<T> {
     #[doc = "Encodes the inner value."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         (**self).encode_into(dest)
     }
 
     #[doc = "Returns the encoding length of the inner value."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         (**self).encoding_length()
@@ -572,6 +592,7 @@ impl<T: Encode> Encode for Box<T> {
 
 impl<T: Decode> Decode for Box<T> {
     #[doc = "Decodes the inner value into a new Box."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         T::decode(input).map(|v| v.into())
@@ -580,6 +601,7 @@ impl<T: Decode> Decode for Box<T> {
     #[doc = "Decodes the inner value into the existing Box."]
     #[doc = ""]
     #[doc = "Recursively calls `decode_into` on the inner value."]
+    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         (**self).decode_into(input)
@@ -587,7 +609,9 @@ impl<T: Decode> Decode for Box<T> {
 }
 
 #[cfg(test)]
+use mutagen::mutate;
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -688,6 +712,12 @@ mod tests {
     }
 
     #[test]
+    fn test_encoding_length_bool() {
+        let value: bool = true;
+        let enc_length = value.encoding_length().unwrap();
+        assert!(enc_length == 1);
+    }
+    #[test]
     fn test_decode_bool_true() {
         let bytes = vec![1];
         let decoded_value: bool = Decode::decode(bytes.as_slice()).unwrap();
@@ -735,11 +765,26 @@ mod tests {
     }
 
     #[test]
+    fn test_option_encoding_length() {
+        let val = 0x12u8;
+        let option = Some(val);
+        let option_length = option.encoding_length().unwrap();
+        let val_length = val.encoding_length().unwrap();
+        assert!(option_length == val_length + 1);
+    }
+    #[test]
     fn test_option_none_encode_into() {
         let option: Option<u8> = None;
         let mut vec: Vec<u8> = vec![];
         option.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![0]);
+    }
+
+    #[test]
+    fn test_option_none_encoding_length() {
+        let option: Option<u8> = None;
+        let length = option.encoding_length().unwrap();
+        assert!(length == 1);
     }
 
     #[test]
@@ -767,6 +812,15 @@ mod tests {
     }
 
     #[test]
+    fn test_vec_encoding_length() {
+        let forty_two: u8 = 42;
+        let mut vec: Vec<u8> = vec![42, 42, 42];
+        let vec_length = vec.encoding_length().unwrap();
+        let indv_num_length = forty_two.encoding_length().unwrap();
+        assert!(vec_length == indv_num_length * 3);
+    }
+
+    #[test]
     fn test_box_encoding_length() {
         let forty_two = Box::new(42);
         let length = forty_two.encoding_length().unwrap();
@@ -776,14 +830,14 @@ mod tests {
     #[test]
     fn test_box_encode_into() {
         let test = Box::new(42);
-        let mut vec = vec![];
-        test.encode_into(&mut vec);
-        assert_eq!(vec, vec![0, 0, 0, 42]);
+        let mut vec = vec![12];
+        test.encode_into(&mut vec).unwrap();
+        assert_eq!(*test, 42);
     }
 
     #[test]
     fn test_box_decode() {
-        let mut bytes = vec![1];
+        let bytes = vec![1];
         let test = Box::new(bytes.as_slice());
         let decoded_value: Box<bool> = Decode::decode(test).unwrap();
         assert_eq!(*decoded_value, true);
@@ -792,7 +846,7 @@ mod tests {
     #[test]
     fn test_box_decode_into() {
         let mut test = Box::new(false);
-        let mut bytes = vec![1];
+        let bytes = vec![1];
         test.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(*test, true);
     }
@@ -812,5 +866,12 @@ mod tests {
         let slice = &vec[0..3];
         let size = slice.encoding_length().unwrap();
         assert_eq!(size, 12);
+    }
+
+    #[test]
+    fn test_unit_encoding_length() {
+        let unit = ();
+        let length = unit.encoding_length().unwrap();
+        assert!(length == 0);
     }
 }
