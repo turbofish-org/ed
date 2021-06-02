@@ -1,8 +1,8 @@
-#![feature(optin_builtin_traits)]
+#![feature(auto_traits)]
 
 use std::io::{Read, Write};
 use failure::{bail, format_err};
-use seq_macro::seq;
+use std::convert::TryInto;
 
 pub use ed_derive::*;
 
@@ -228,7 +228,7 @@ tuple_impl!(A, B, C, D; E);
 tuple_impl!(A, B, C, D, E; F);
 tuple_impl!(A, B, C, D, E, F; G);
 
-impl<const N: usize, T: Encode + Terminated> Encode for [T; N] {
+impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
     #[allow(non_snake_case, unused_mut, unused_variables)]
     #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
@@ -249,16 +249,17 @@ impl<const N: usize, T: Encode + Terminated> Encode for [T; N] {
     }
 }
 
-impl<const N: usize, T: Decode + Terminated> Decode for [T; N] {
+impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
+
     #[allow(unused_variables, unused_mut)]
     #[inline]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
-        seq!(N in 0..N {
-            let mut array = [
-                #(T::decode(&mut input)?,)
-            ];
-        });
-        Ok(array)
+        let mut v: Vec<T> = Vec::new();
+        for i in 0..N {
+            v.push(T::decode(&mut input).unwrap());
+        }
+        Ok(v.try_into()
+           .unwrap_or_else(|v: Vec<T>| panic!("Expected Vec of length {}, but found length {}", N, v.len())))
     }
 
     #[inline]
@@ -270,7 +271,7 @@ impl<const N: usize, T: Decode + Terminated> Decode for [T; N] {
     }
 }
 
-impl<const N: usize, T: Terminated> Terminated for [T; N] {}
+impl<T: Terminated, const N: usize,> Terminated for [T; N] {}
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[inline]
