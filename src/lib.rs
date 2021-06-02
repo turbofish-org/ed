@@ -1,76 +1,8 @@
-//! *`ed` is a minimalist crate for deterministic binary encodings.*
-//!
-//! ## Overview
-//!
-//! This crate provides `Encode` and `Decode` traits which can be implemented for any
-//! type that can be converted to or from bytes, and implements these traits for
-//! many built-in Rust types. It also provides derive macros so that `Encode`
-//! and `Decode` can be easily derived for structs.
-//!
-//! `ed` is far simpler than `serde` because it does not attempt to create an
-//! abstraction which allows arbitrary kinds of encoding (JSON, MessagePack,
-//! etc.), and instead forces focuses on binary encodings. It is also
-//! significantly faster than [`bincode`](https://docs.rs/bincode), the leading
-//! binary `serde` serializer.
-//!
-//! One aim of `ed` is to force top-level type authors to design their own
-//! encoding, rather than attempting to provide a one-size-fits-all encoding
-//! scheme. This lets users of `ed` be sure their encodings are as effiient as
-//! possible, and makes it easier to understand the encoding for compatability
-//! in other languages or libraries (contrasted with something like `bincode`,
-//! where it is not obvious how a type is being encoded without understanding
-//! the internals of `bincode`).
-//!
-//! Another property of this crate is a focus on determinism (important for
-//! cryptographically hashed types) - built-in encodings are always big-endian
-//! and there are no provided encodings for floating point numbers or `usize`.
-//!
-//! ## Usage
-//!
-//! ```rust
-//! use ed::{Encode, Decode};
-//!
-//! # fn main() -> ed::Result<()> {
-//! // traits are implemented for built-in types
-//! let bytes = 123u32.encode()?; // `bytes` is a Vec<u8>
-//! let n = u32::decode(bytes.as_slice())?; // `n` is a u32
-//!
-//! // derive macros are available
-//! #[derive(Encode, Decode)]
-//! # #[derive(PartialEq, Eq, Debug)]
-//! struct Foo {
-//!   bar: (u32, u32),
-//!   baz: Vec<u8>
-//! }
-//!
-//! // encoding and decoding can be done in-place to reduce allocations
-//!
-//! let mut bytes = vec![0xba; 40];
-//! let mut foo = Foo {
-//!   bar: (0, 0),
-//!   baz: Vec::with_capacity(32)
-//! };
-//!
-//! // in-place decode, re-using pre-allocated `foo.baz` vec
-//! foo.decode_into(bytes.as_slice())?;
-//! assert_eq!(foo, Foo {
-//!   bar: (0xbabababa, 0xbabababa),
-//!   baz: vec![0xba; 32]
-//! });
-//!
-//! // in-place encode, into pre-allocated `bytes` vec
-//! bytes.clear();
-//! foo.encode_into(&mut bytes)?;
-//!
-//! # Ok(())
-//! # }
-//! ```
-
 #![feature(auto_traits)]
 
 use failure::{bail, format_err};
-use seq_macro::seq;
 use std::io::{Read, Write};
+use std::convert::TryInto;
 
 pub use ed_derive::*;
 
@@ -378,7 +310,7 @@ tuple_impl!(A, B, C, D; E);
 tuple_impl!(A, B, C, D, E; F);
 tuple_impl!(A, B, C, D, E, F; G);
 
-impl<const N: usize, T: Encode + Terminated> Encode for [T; N] {
+impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
     #[allow(non_snake_case, unused_mut, unused_variables)]
     #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
@@ -399,16 +331,17 @@ impl<const N: usize, T: Encode + Terminated> Encode for [T; N] {
     }
 }
 
-impl<const N: usize, T: Decode + Terminated> Decode for [T; N] {
+impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
+
     #[allow(unused_variables, unused_mut)]
     #[inline]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
-        seq!(N in 0..N {
-            let mut array = [
-                #(T::decode(&mut input)?,)
-            ];
-        });
-        Ok(array)
+        let mut v: Vec<T> = Vec::new();
+        for i in 0..N {
+            v.push(T::decode(&mut input).unwrap());
+        }
+        Ok(v.try_into()
+           .unwrap_or_else(|v: Vec<T>| panic!("Expected Vec of length {}, but found length {}", N, v.len())))
     }
 
     #[inline]
@@ -420,7 +353,7 @@ impl<const N: usize, T: Decode + Terminated> Decode for [T; N] {
     }
 }
 
-impl<const N: usize, T: Terminated> Terminated for [T; N] {}
+impl<T: Terminated, const N: usize,> Terminated for [T; N] {}
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
