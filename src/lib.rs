@@ -3,6 +3,7 @@
 use failure::{bail, format_err};
 use std::io::{Read, Write};
 use std::convert::TryInto;
+use std::io::{Read, Write};
 
 pub use ed_derive::*;
 
@@ -332,7 +333,6 @@ impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
 }
 
 impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
-
     #[allow(unused_variables, unused_mut)]
     #[inline]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
@@ -341,8 +341,7 @@ impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
             v.push(T::decode(&mut input).unwrap());
         }
         Ok(v.try_into()
-            .unwrap_or_else(|v: Vec<T>| panic!("Input Vec not of length {}", N))
-        )
+            .unwrap_or_else(|v: Vec<T>| panic!("Input Vec not of length {}", N)))
     }
 
     #[inline]
@@ -354,7 +353,7 @@ impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
     }
 }
 
-impl<T: Terminated, const N: usize,> Terminated for [T; N] {}
+impl<T: Terminated, const N: usize> Terminated for [T; N] {}
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
