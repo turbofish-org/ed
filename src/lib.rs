@@ -1,7 +1,6 @@
 #![feature(auto_traits)]
 
 use failure::{bail, format_err};
-use std::io::{Read, Write};
 use std::convert::TryInto;
 use std::io::{Read, Write};
 
