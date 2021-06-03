@@ -1,8 +1,8 @@
 #![feature(auto_traits)]
 
-use std::io::{Read, Write};
 use failure::{bail, format_err};
 use std::convert::TryInto;
+use std::io::{Read, Write};
 
 pub use ed_derive::*;
 
@@ -74,11 +74,10 @@ int_impl!(i32, 4);
 int_impl!(i64, 8);
 int_impl!(i128, 16);
 
-
 impl Encode for bool {
     #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
-        let bytes = [ *self as u8 ];
+        let bytes = [*self as u8];
         dest.write_all(&bytes[..])?;
         Ok(())
     }
@@ -97,7 +96,7 @@ impl Decode for bool {
         match buf[0] {
             0 => Ok(false),
             1 => Ok(true),
-            byte => bail!("Unexpected byte {}", byte)
+            byte => bail!("Unexpected byte {}", byte),
         }
     }
 }
@@ -142,9 +141,9 @@ impl<T: Decode> Decode for Option<T> {
             0 => *self = None,
             1 => match self {
                 None => *self = Some(T::decode(input)?),
-                Some(value) => value.decode_into(input)?
+                Some(value) => value.decode_into(input)?,
             },
-            byte => bail!("Unexpected byte {}", byte)
+            byte => bail!("Unexpected byte {}", byte),
         };
 
         Ok(())
@@ -250,7 +249,6 @@ impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
 }
 
 impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
-
     #[allow(unused_variables, unused_mut)]
     #[inline]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
@@ -259,8 +257,7 @@ impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
             v.push(T::decode(&mut input).unwrap());
         }
         Ok(v.try_into()
-            .unwrap_or_else(|v: Vec<T>| panic!("Input Vec not of length {}", N))
-        )
+            .unwrap_or_else(|v: Vec<T>| panic!("Input Vec not of length {}", N)))
     }
 
     #[inline]
@@ -272,7 +269,7 @@ impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
     }
 }
 
-impl<T: Terminated, const N: usize,> Terminated for [T; N] {}
+impl<T: Terminated, const N: usize> Terminated for [T; N] {}
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[inline]
