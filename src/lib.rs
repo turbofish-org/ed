@@ -423,9 +423,9 @@ impl<T: Terminated, const N: usize> Terminated for [T; N] {}
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
     #[inline]
-    fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
+    fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         for element in self.iter() {
-            element.encode_into(&mut dest)?;
+            element.encode_into(dest)?;
         }
         Ok(())
     }
