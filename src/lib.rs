@@ -68,14 +68,23 @@
 
 #![feature(auto_traits)]
 
-use failure::{bail, format_err};
 use std::convert::TryInto;
 use std::io::{Read, Write};
 
 pub use ed_derive::*;
 
+/// An enum that defines the `ed` error types.
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Unexpected byte: {0}")]
+    UnexpectedByte(u8),
+    #[error(transparent)] 
+    IOError(#[from] std::io::Error),
+}
+
+
 /// A Result bound to the standard `ed` error type.
-pub type Result<T> = std::result::Result<T, failure::Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// A trait for values that can be encoded into bytes deterministically.
 pub trait Encode {
@@ -226,7 +235,7 @@ impl Decode for bool {
         match buf[0] {
             0 => Ok(false),
             1 => Ok(true),
-            byte => bail!("Unexpected byte {}", byte),
+            byte => Err(Error::UnexpectedByte(byte)),
         }
     }
 }
@@ -240,9 +249,9 @@ impl<T: Encode> Encode for Option<T> {
     #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
-            None => dest.write_all(&[0]).map_err(|err| format_err!("{}", err)),
+            None => dest.write_all(&[0]).map_err(|err| Error::IOError(err)),
             Some(value) => {
-                dest.write_all(&[1]).map_err(|err| format_err!("{}", err))?;
+                dest.write_all(&[1]).map_err(|err| Error::IOError(err))?;
                 value.encode_into(dest)
             }
         }
@@ -289,7 +298,9 @@ impl<T: Decode> Decode for Option<T> {
                 None => *self = Some(T::decode(input)?),
                 Some(value) => value.decode_into(input)?,
             },
-            byte => bail!("Unexpected byte {}", byte),
+            byte => {
+                return Err(Error::UnexpectedByte(byte));
+            },
         };
 
         Ok(())
