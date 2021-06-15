@@ -248,9 +248,9 @@ impl<T: Encode> Encode for Option<T> {
     #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
-            None => dest.write_all(&[0]).map_err(|err| Error::IOError(err)),
+            None => dest.write_all(&[0]).map_err(Error::IOError),
             Some(value) => {
-                dest.write_all(&[1]).map_err(|err| Error::IOError(err))?;
+                dest.write_all(&[1]).map_err(Error::IOError)?;
                 value.encode_into(dest)
             }
         }
