@@ -411,8 +411,8 @@ impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
 
     #[inline]
     fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
-        for i in 0..N {
-            T::decode_into(&mut self[i], &mut input)?;
+        for item in self.iter_mut().take(N) {
+            T::decode_into(item, &mut input)?;
         }
         Ok(())
     }
