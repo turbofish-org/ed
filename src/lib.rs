@@ -78,10 +78,9 @@ pub use ed_derive::*;
 pub enum Error {
     #[error("Unexpected byte: {0}")]
     UnexpectedByte(u8),
-    #[error(transparent)] 
+    #[error(transparent)]
     IOError(#[from] std::io::Error),
 }
-
 
 /// A Result bound to the standard `ed` error type.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -300,7 +299,7 @@ impl<T: Decode> Decode for Option<T> {
             },
             byte => {
                 return Err(Error::UnexpectedByte(byte));
-            },
+            }
         };
 
         Ok(())
