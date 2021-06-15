@@ -769,7 +769,7 @@ mod tests {
     #[test]
     fn test_vec_encoding_length() {
         let forty_two: u8 = 42;
-        let mut vec: Vec<u8> = vec![42, 42, 42];
+        let vec: Vec<u8> = vec![42, 42, 42];
         let vec_length = vec.encoding_length().unwrap();
         let indv_num_length = forty_two.encoding_length().unwrap();
         assert!(vec_length == indv_num_length * 3);
