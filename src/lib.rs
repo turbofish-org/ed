@@ -866,7 +866,7 @@ mod tests {
         let vec = vec![1, 2, 1];
         let slice = &vec[0..3];
         let mut vec: Vec<u8> = vec![];
-        slice.encode_into(&mut vec);
+        slice.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1]);
     }
 
