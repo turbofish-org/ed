@@ -700,7 +700,7 @@ mod tests {
         }
 
         impl Decode for Foo {
-            fn decode<R: Read>(input: R) -> Result<Self> {
+            fn decode<R: Read>(_input: R) -> Result<Self> {
                 Ok(Foo { bar: 42 })
             }
         }
