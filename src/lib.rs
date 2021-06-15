@@ -723,13 +723,13 @@ mod tests {
     fn test_box_encode_into() {
         let test = Box::new(42);
         let mut vec = vec![];
-        test.encode_into(&mut vec);
+        test.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![0, 0, 0, 42]);
     }
 
     #[test]
     fn test_box_decode() {
-        let mut bytes = vec![1];
+        let bytes = vec![1];
         let test = Box::new(bytes.as_slice());
         let decoded_value: Box<bool> = Decode::decode(test).unwrap();
         assert_eq!(*decoded_value, true);
@@ -738,7 +738,7 @@ mod tests {
     #[test]
     fn test_box_decode_into() {
         let mut test = Box::new(false);
-        let mut bytes = vec![1];
+        let bytes = vec![1];
         test.decode_into(bytes.as_slice()).unwrap();
         assert_eq!(*test, true);
     }
@@ -748,7 +748,7 @@ mod tests {
         let vec = vec![1, 2, 1];
         let slice = &vec[0..3];
         let mut vec: Vec<u8> = vec![];
-        slice.encode_into(&mut vec);
+        slice.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1]);
     }
 
