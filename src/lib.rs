@@ -69,7 +69,7 @@
 #![feature(auto_traits)]
 
 use failure::{bail, format_err};
-use seq_macro::seq;
+use std::convert::TryInto;
 use std::io::{Read, Write};
 
 pub use ed_derive::*;
@@ -390,109 +390,54 @@ tuple_impl!(A, B, C, D; E);
 tuple_impl!(A, B, C, D, E; F);
 tuple_impl!(A, B, C, D, E, F; G);
 
-macro_rules! array_impl {
-    ($length:expr) => {
-        impl<T: Encode + Terminated> Encode for [T; $length] {
-            #[doc = "Encodes the elements of the array one after another, in"]
-            #[doc = " order."]
-            #[allow(non_snake_case, unused_mut, unused_variables)]
-            #[inline]
-            fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
-                for element in self[..].iter() {
-                    element.encode_into(&mut dest)?;
-                }
-                Ok(())
-            }
-
-            #[doc = "Returns the sum of the encoding lengths of all elements."]
-            #[allow(non_snake_case)]
-            #[inline]
-            fn encoding_length(&self) -> Result<usize> {
-                let mut sum = 0;
-                for element in self[..].iter() {
-                    sum += element.encoding_length()?;
-                }
-                Ok(sum)
-            }
+impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
+    #[inline]
+    fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
+        for element in self[..].iter() {
+            element.encode_into(&mut dest)?;
         }
+        Ok(())
+    }
 
-        impl<T: Decode + Terminated> Decode for [T; $length] {
-            #[doc = "Decodes the elements of the array one after another, in"]
-            #[doc = " order."]
-            #[allow(unused_variables, unused_mut)]
-            #[inline]
-            fn decode<R: Read>(mut input: R) -> Result<Self> {
-                seq!(N in 0..$length {
-                    let mut array = [
-                        #(T::decode(&mut input)?,)*
-                    ];
-                });
-                Ok(array)
-            }
-
-            #[doc = "Decodes the elements of the array one after another, in"]
-            #[doc = " order."]
-            #[doc = ""]
-            #[doc = "Recursively calls `decode_into` for each element."]
-            #[allow(clippy::reversed_empty_ranges)]
-            #[inline]
-            fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
-                for i in 0..$length {
-                    T::decode_into(&mut self[i], &mut input)?;
-                }
-                Ok(())
-            }
+    #[inline]
+    fn encoding_length(&self) -> Result<usize> {
+        let mut sum = 0;
+        for element in self[..].iter() {
+            sum += element.encoding_length()?;
         }
-
-        impl<T: Terminated> Terminated for [T; $length] {}
-    };
+        Ok(sum)
+    }
 }
 
-array_impl!(0);
-array_impl!(1);
-array_impl!(2);
-array_impl!(3);
-array_impl!(4);
-array_impl!(5);
-array_impl!(6);
-array_impl!(7);
-array_impl!(8);
-array_impl!(9);
-array_impl!(10);
-array_impl!(11);
-array_impl!(12);
-array_impl!(13);
-array_impl!(14);
-array_impl!(15);
-array_impl!(16);
-array_impl!(17);
-array_impl!(18);
-array_impl!(19);
-array_impl!(20);
-array_impl!(21);
-array_impl!(22);
-array_impl!(23);
-array_impl!(24);
-array_impl!(25);
-array_impl!(26);
-array_impl!(27);
-array_impl!(28);
-array_impl!(29);
-array_impl!(30);
-array_impl!(31);
-array_impl!(32);
-array_impl!(33);
-array_impl!(64);
-array_impl!(128);
-array_impl!(256);
+impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
+    #[allow(unused_variables, unused_mut)]
+    #[inline]
+    fn decode<R: Read>(mut input: R) -> Result<Self> {
+        let mut v: Vec<T> = Vec::with_capacity(N);
+        for i in 0..N {
+            v.push(T::decode(&mut input)?);
+        }
+        Ok(v.try_into()
+            .unwrap_or_else(|v: Vec<T>| panic!("Input Vec not of length {}", N)))
+    }
+
+    #[inline]
+    fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
+        for item in self.iter_mut().take(N) {
+            T::decode_into(item, &mut input)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: Terminated, const N: usize> Terminated for [T; N] {}
 
 impl<T: Encode + Terminated> Encode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
     #[inline]
-    #[cfg_attr(test, mutate)]
-    fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
+    fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         for element in self.iter() {
-            element.encode_into(&mut dest)?;
+            element.encode_into(dest)?;
         }
         Ok(())
     }
@@ -856,7 +801,7 @@ mod tests {
         let vec = vec![1, 2, 1];
         let slice = &vec[0..3];
         let mut vec: Vec<u8> = vec![];
-        slice.encode_into(&mut vec);
+        slice.encode_into(&mut vec).unwrap();
         assert_eq!(vec, vec![0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1]);
     }
 
