@@ -403,7 +403,7 @@ impl<T: Decode + Terminated, const N: usize> Decode for [T; N] {
     fn decode<R: Read>(mut input: R) -> Result<Self> {
         let mut v: Vec<T> = Vec::with_capacity(N);
         for i in 0..N {
-            v.push(T::decode(&mut input).unwrap());
+            v.push(T::decode(&mut input)?);
         }
         Ok(v.try_into()
             .unwrap_or_else(|v: Vec<T>| panic!("Input Vec not of length {}", N)))
