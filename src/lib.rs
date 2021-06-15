@@ -688,10 +688,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Unexpected byte 42")]
     fn test_decode_bool_bail() {
         let bytes = vec![42];
-        let _: bool = Decode::decode(bytes.as_slice()).unwrap();
+        let result: Result<bool> = Decode::decode(bytes.as_slice());
+        assert_eq!(result.unwrap_err().to_string(), "Unexpected byte: 42");
     }
 
     #[test]
@@ -744,11 +744,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Unexpected byte 42")]
     fn test_bail_option_decode_into() {
         let mut option: Option<u8> = Some(42);
         let bytes = vec![42];
-        option.decode_into(bytes.as_slice()).unwrap();
+        let err = option.decode_into(bytes.as_slice()).unwrap_err();
+        assert_eq!(err.to_string(), "Unexpected byte: 42");
     }
 
     #[test]
