@@ -379,7 +379,6 @@ tuple_impl!(A, B, C, D, E; F);
 tuple_impl!(A, B, C, D, E, F; G);
 
 impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
-    #[allow(non_snake_case, unused_mut, unused_variables)]
     #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
         for element in self[..].iter() {
@@ -388,7 +387,6 @@ impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
         Ok(())
     }
 
-    #[allow(non_snake_case)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
