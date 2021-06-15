@@ -2,6 +2,7 @@
 
 *A minimalist crate for deterministic binary encodings in Rust.*
 
+![CI](https://github.com/nomic-io/ed/actions/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/nomic-io/ed/branch/master/graph/badge.svg?token=BZK1DP4CF4)](https://codecov.io/gh/nomic-io/ed)
 [![Crate](https://img.shields.io/crates/v/ed.svg)](https://crates.io/crates/ed)
 [![API](https://docs.rs/ed/badge.svg)](https://docs.rs/ed)
