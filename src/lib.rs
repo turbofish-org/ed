@@ -68,14 +68,22 @@
 
 #![feature(auto_traits)]
 
-use failure::{bail, format_err};
 use std::convert::TryInto;
 use std::io::{Read, Write};
 
 pub use ed_derive::*;
 
+/// An enum that defines the `ed` error types.
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Unexpected byte: {0}")]
+    UnexpectedByte(u8),
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+}
+
 /// A Result bound to the standard `ed` error type.
-pub type Result<T> = std::result::Result<T, failure::Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// A trait for values that can be encoded into bytes deterministically.
 pub trait Encode {
@@ -226,7 +234,7 @@ impl Decode for bool {
         match buf[0] {
             0 => Ok(false),
             1 => Ok(true),
-            byte => bail!("Unexpected byte {}", byte),
+            byte => Err(Error::UnexpectedByte(byte)),
         }
     }
 }
@@ -240,9 +248,9 @@ impl<T: Encode> Encode for Option<T> {
     #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
-            None => dest.write_all(&[0]).map_err(|err| format_err!("{}", err)),
+            None => dest.write_all(&[0]).map_err(Error::IOError),
             Some(value) => {
-                dest.write_all(&[1]).map_err(|err| format_err!("{}", err))?;
+                dest.write_all(&[1]).map_err(Error::IOError)?;
                 value.encode_into(dest)
             }
         }
@@ -289,7 +297,9 @@ impl<T: Decode> Decode for Option<T> {
                 None => *self = Some(T::decode(input)?),
                 Some(value) => value.decode_into(input)?,
             },
-            byte => bail!("Unexpected byte {}", byte),
+            byte => {
+                return Err(Error::UnexpectedByte(byte));
+            }
         };
 
         Ok(())
@@ -677,10 +687,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Unexpected byte 42")]
     fn test_decode_bool_bail() {
         let bytes = vec![42];
-        let _: bool = Decode::decode(bytes.as_slice()).unwrap();
+        let result: Result<bool> = Decode::decode(bytes.as_slice());
+        assert_eq!(result.unwrap_err().to_string(), "Unexpected byte: 42");
     }
 
     #[test]
@@ -690,7 +700,7 @@ mod tests {
         }
 
         impl Decode for Foo {
-            fn decode<R: Read>(input: R) -> Result<Self> {
+            fn decode<R: Read>(_input: R) -> Result<Self> {
                 Ok(Foo { bar: 42 })
             }
         }
@@ -733,11 +743,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Unexpected byte 42")]
     fn test_bail_option_decode_into() {
         let mut option: Option<u8> = Some(42);
         let bytes = vec![42];
-        option.decode_into(bytes.as_slice()).unwrap();
+        let err = option.decode_into(bytes.as_slice()).unwrap_err();
+        assert_eq!(err.to_string(), "Unexpected byte: 42");
     }
 
     #[test]
@@ -759,7 +769,7 @@ mod tests {
     #[test]
     fn test_vec_encoding_length() {
         let forty_two: u8 = 42;
-        let mut vec: Vec<u8> = vec![42, 42, 42];
+        let vec: Vec<u8> = vec![42, 42, 42];
         let vec_length = vec.encoding_length().unwrap();
         let indv_num_length = forty_two.encoding_length().unwrap();
         assert!(vec_length == indv_num_length * 3);
