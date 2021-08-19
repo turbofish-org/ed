@@ -13,6 +13,9 @@ struct Foo2(u32, (u32, u32));
 struct Foo3;
 
 #[derive(Encode, Decode)]
+struct Foo4<T: Default>(T);
+
+#[derive(Encode, Decode)]
 enum Bar {
   A {
     x: u32,
@@ -21,3 +24,15 @@ enum Bar {
   B(u32, (u32, u32)),
   C,
 }
+
+#[derive(Encode, Decode)]
+enum Bar2<T: Default> {
+  A {
+    x: u32,
+    y: (u32, u32),
+  },
+  B(u32, (u32, u32)),
+  C,
+  D(T),
+}
+

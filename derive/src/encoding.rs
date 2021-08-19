@@ -8,21 +8,26 @@ use proc_macro2::{Span, TokenStream, Literal};
 pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
 
-    let output = match item.data {
-        Data::Struct(data) => struct_encode(item.ident, data),
-        Data::Enum(data) => enum_encode(item.ident, data),
+    let output = match item.data.clone() {
+        Data::Struct(data) => struct_encode(item, data),
+        Data::Enum(data) => enum_encode(item, data),
         Data::Union(_) => unimplemented!("Not implemented for unions"),
     };
 
     output.into()
 }
 
-fn struct_encode(name: Ident, data: DataStruct) -> TokenStream {
+fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
+    let name = &item.ident;
+
+    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Encode));
+    let gen_params = gen_param_input(&item.generics);
+
     let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)), false);
     let encoding_length = fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
 
     quote! {
-        impl ::ed::Encode for #name {
+        impl#gen_bounds ::ed::Encode for #name#gen_params {
             #[inline]
             fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> ::ed::Result<()> {
                 #encode_into
@@ -38,7 +43,12 @@ fn struct_encode(name: Ident, data: DataStruct) -> TokenStream {
     }
 }
 
-fn enum_encode(name: Ident, data: DataEnum) -> TokenStream {
+fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
+    let name = &item.ident;
+
+    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Encode));
+    let gen_params = gen_param_input(&item.generics);
+
     let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
         let ident = &v.ident;
@@ -78,7 +88,7 @@ fn enum_encode(name: Ident, data: DataEnum) -> TokenStream {
     };
 
     quote! {
-        impl ::ed::Encode for #name {
+        impl#gen_bounds ::ed::Encode for #name#gen_params {
             #encode_into
             #encoding_length
         }
@@ -88,21 +98,26 @@ fn enum_encode(name: Ident, data: DataEnum) -> TokenStream {
 pub fn derive_decode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
 
-    let output = match item.data {
-        Data::Struct(data) => struct_decode(item.ident, data),
-        Data::Enum(data) => enum_decode(item.ident, data),
+    let output = match item.data.clone() {
+        Data::Struct(data) => struct_decode(item, data),
+        Data::Enum(data) => enum_decode(item, data),
         Data::Union(_) => unimplemented!("Not implemented for unions"),
     };
 
     output.into()
 }
 
-fn struct_decode(name: Ident, data: DataStruct) -> TokenStream {
+fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
+    let name = &item.ident;
+    
     let decode = fields_decode(&data.fields, None);
     let decode_into = fields_decode_into(&data.fields, None);
 
+    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Decode));
+    let gen_params = gen_param_input(&item.generics);
+
     quote! {
-        impl ed::Decode for #name {
+        impl#gen_bounds ed::Decode for #name#gen_params {
             #[inline]
             fn decode<R: std::io::Read>(mut input: R) -> ed::Result<Self> {
                 Ok(#decode)
@@ -117,7 +132,12 @@ fn struct_decode(name: Ident, data: DataStruct) -> TokenStream {
     }
 }
 
-fn enum_decode(name: Ident, data: DataEnum) -> TokenStream {
+fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
+    let name = &item.ident;
+
+    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Decode));
+    let gen_params = gen_param_input(&item.generics);
+
     let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
         let arm = fields_decode(&v.fields, Some(v.ident.clone()));
@@ -125,7 +145,7 @@ fn enum_decode(name: Ident, data: DataEnum) -> TokenStream {
     });
 
     quote! {
-        impl ::ed::Decode for #name {
+        impl#gen_bounds ::ed::Decode for #name#gen_params {
             #[inline]
             fn decode<R: std::io::Read>(mut input: R) -> ::ed::Result<Self> {
                 let mut variant = [0; 1];
@@ -190,6 +210,43 @@ fn variant_destructure(variant: &Variant) -> TokenStream {
         Fields::Named(fields) => quote!({ #(#names),* }),
         Fields::Unnamed(fields) => quote!(( #(#names),* )),
         Fields::Unit => quote!(),
+    }
+}
+
+fn gen_bounds_modified(generics: &Generics, add: TokenStream) -> TokenStream {
+    let gen_bounds = generics.params.iter().map(|p| match p {
+        GenericParam::Type(p) => quote!(#p + #add),
+        GenericParam::Lifetime(p) => quote!(#p),
+        GenericParam::Const(p) => quote!(#p),
+    });
+   
+    if gen_bounds.len() == 0 {
+        quote!()
+    } else {
+        quote!(<#(#gen_bounds),*>)
+    } 
+}
+
+fn gen_param_input(generics: &Generics) -> TokenStream {
+    let gen_params = generics.params.iter().map(|p| match p {
+        GenericParam::Type(p) => {
+            let ident = &p.ident;
+            quote!(#ident)
+        }
+        GenericParam::Lifetime(p) => {
+            let ident = &p.lifetime.ident;
+            quote!(#ident)
+        }
+        GenericParam::Const(p) => {
+            let ident = &p.ident;
+            quote!(#ident)
+        }
+    });
+
+    if gen_params.len() == 0 {
+        quote!()
+    } else {
+        quote!(<#(#gen_params),*>)
     }
 }
 
