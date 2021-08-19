@@ -26,13 +26,13 @@ enum Bar {
 }
 
 #[derive(Encode, Decode)]
-enum Bar2<T: Default> {
+enum Bar2<T: Default, U> {
   A {
     x: u32,
     y: (u32, u32),
   },
   B(u32, (u32, u32)),
   C,
-  D(T),
+  D(T, U),
 }
 

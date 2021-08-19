@@ -1,7 +1,7 @@
+use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use syn::*;
 use syn::punctuated::Punctuated;
-use proc_macro2::{Span, TokenStream, Literal};
+use syn::*;
 
 // TODO: use correct spans so errors are shown on fields
 
@@ -14,17 +14,23 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Data::Union(_) => unimplemented!("Not implemented for unions"),
     };
 
+    println!("{}", &output);
+
     output.into()
 }
 
 fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let name = &item.ident;
 
-    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Encode));
+    let gen_bounds = gen_bounds_modified(
+        &item.generics,
+        vec![quote!(::ed::Encode), quote!(::ed::Terminated)],
+    );
     let gen_params = gen_param_input(&item.generics);
 
     let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)), false);
-    let encoding_length = fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
+    let encoding_length =
+        fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
 
     quote! {
         impl#gen_bounds ::ed::Encode for #name#gen_params {
@@ -46,7 +52,10 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
 fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let name = &item.ident;
 
-    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Encode));
+    let gen_bounds = gen_bounds_modified(
+        &item.generics,
+        vec![quote!(::ed::Encode), quote!(::ed::Terminated)],
+    );
     let gen_params = gen_param_input(&item.generics);
 
     let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
@@ -109,11 +118,14 @@ pub fn derive_decode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let name = &item.ident;
-    
+
     let decode = fields_decode(&data.fields, None);
     let decode_into = fields_decode_into(&data.fields, None);
 
-    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Decode));
+    let gen_bounds = gen_bounds_modified(
+        &item.generics,
+        vec![quote!(::ed::Decode), quote!(::ed::Terminated)],
+    );
     let gen_params = gen_param_input(&item.generics);
 
     quote! {
@@ -135,7 +147,10 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
 fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let name = &item.ident;
 
-    let gen_bounds = gen_bounds_modified(&item.generics, quote!(::ed::Decode));
+    let gen_bounds = gen_bounds_modified(
+        &item.generics,
+        vec![quote!(::ed::Decode), quote!(::ed::Terminated)],
+    );
     let gen_params = gen_param_input(&item.generics);
 
     let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
@@ -151,7 +166,7 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
                 let mut variant = [0; 1];
                 input.read_exact(&mut variant[..])?;
                 let variant = variant[0];
-    
+
                 Ok(match variant {
                     #(#arms),*
                     n => return Err(::ed::Error::UnexpectedByte(n)),
@@ -163,7 +178,7 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
     }
 }
 
-fn iter_fields(fields: &Fields) -> Box<dyn Iterator<Item=Field>> {
+fn iter_fields(fields: &Fields) -> Box<dyn Iterator<Item = Field>> {
     match fields.clone() {
         Fields::Named(fields) => Box::new(fields.named.into_iter()),
         Fields::Unnamed(fields) => Box::new(fields.unnamed.into_iter()),
@@ -171,7 +186,7 @@ fn iter_fields(fields: &Fields) -> Box<dyn Iterator<Item=Field>> {
     }
 }
 
-fn iter_field_names(fields: &Fields) -> impl Iterator<Item=TokenStream> {
+fn iter_field_names(fields: &Fields) -> impl Iterator<Item = TokenStream> {
     iter_fields(fields)
         .enumerate()
         .map(|(i, field)| match field.ident {
@@ -179,27 +194,23 @@ fn iter_field_names(fields: &Fields) -> impl Iterator<Item=TokenStream> {
             None => {
                 let i = Literal::usize_unsuffixed(i);
                 quote!(#i)
-            },
+            }
         })
 }
 
-fn iter_field_destructure(variant: &Variant) -> Box<dyn Iterator<Item=TokenStream>> {
+fn iter_field_destructure(variant: &Variant) -> Box<dyn Iterator<Item = TokenStream>> {
     match variant.fields.clone() {
-        Fields::Named(fields) => {
-            Box::new(fields.named.into_iter().map(|v| {
-                let ident = v.ident;
-                quote!(#ident)
-            }))
-        },
-        Fields::Unnamed(fields) => {
-            Box::new((0..variant.fields.len()).map(|i| {
-                let ident = Ident::new(
-                    ("var".to_string() + i.to_string().as_str()).as_str(),
-                    Span::call_site(),
-                );
-                quote!(#ident)
-            }))
-        },
+        Fields::Named(fields) => Box::new(fields.named.into_iter().map(|v| {
+            let ident = v.ident;
+            quote!(#ident)
+        })),
+        Fields::Unnamed(fields) => Box::new((0..variant.fields.len()).map(|i| {
+            let ident = Ident::new(
+                ("var".to_string() + i.to_string().as_str()).as_str(),
+                Span::call_site(),
+            );
+            quote!(#ident)
+        })),
         Fields::Unit => Box::new(vec![].into_iter()),
     }
 }
@@ -213,18 +224,23 @@ fn variant_destructure(variant: &Variant) -> TokenStream {
     }
 }
 
-fn gen_bounds_modified(generics: &Generics, add: TokenStream) -> TokenStream {
-    let gen_bounds = generics.params.iter().map(|p| match p {
-        GenericParam::Type(p) => quote!(#p + #add),
-        GenericParam::Lifetime(p) => quote!(#p),
-        GenericParam::Const(p) => quote!(#p),
+fn gen_bounds_modified(generics: &Generics, add: Vec<TokenStream>) -> TokenStream {
+    let add: Vec<TypeParamBound> = add.iter().map(|add| parse_quote!(#add)).collect();
+
+    let gen_bounds = generics.params.iter().cloned().map(|mut p| {
+        if let GenericParam::Type(ref mut p) = p {
+            for add in add.iter().cloned() {
+                p.bounds.push(add);
+            }
+        }
+        quote!(#p)
     });
-   
+
     if gen_bounds.len() == 0 {
         quote!()
     } else {
         quote!(<#(#gen_bounds),*>)
-    } 
+    }
 }
 
 fn gen_param_input(generics: &Generics) -> TokenStream {
@@ -250,7 +266,11 @@ fn gen_param_input(generics: &Generics) -> TokenStream {
     }
 }
 
-fn fields_encode_into(field_names: impl Iterator<Item=TokenStream>, parent: Option<TokenStream>, borrowed: bool) -> TokenStream {
+fn fields_encode_into(
+    field_names: impl Iterator<Item = TokenStream>,
+    parent: Option<TokenStream>,
+    borrowed: bool,
+) -> TokenStream {
     let mut field_names: Vec<_> = field_names.collect();
     let mut field_names_minus_last = field_names.clone();
     field_names_minus_last.pop();
@@ -267,7 +287,10 @@ fn fields_encode_into(field_names: impl Iterator<Item=TokenStream>, parent: Opti
     }
 }
 
-fn fields_encoding_length(field_names: impl Iterator<Item=TokenStream>, parent: Option<TokenStream>) -> TokenStream {
+fn fields_encoding_length(
+    field_names: impl Iterator<Item = TokenStream>,
+    parent: Option<TokenStream>,
+) -> TokenStream {
     let parent_dot = parent.as_ref().map(|_| quote!(.));
 
     quote! {
@@ -277,7 +300,7 @@ fn fields_encoding_length(field_names: impl Iterator<Item=TokenStream>, parent: 
 
 fn fields_decode(fields: &Fields, variant_name: Option<Ident>) -> TokenStream {
     let mut field_names = iter_field_names(&fields);
-    
+
     let item_name = match variant_name {
         Some(name) => quote!(Self::#name),
         None => quote!(Self),
