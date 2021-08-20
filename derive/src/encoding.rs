@@ -14,26 +14,24 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Data::Union(_) => unimplemented!("Not implemented for unions"),
     };
 
-    println!("{}", &output);
-
     output.into()
 }
 
 fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let name = &item.ident;
 
-    let gen_bounds = gen_bounds_modified(
-        &item.generics,
-        vec![quote!(::ed::Encode), quote!(::ed::Terminated)],
-    );
+    let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
+    let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
 
     let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)), false);
     let encoding_length =
         fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
 
     quote! {
-        impl#gen_bounds ::ed::Encode for #name#gen_params {
+        impl#generics ::ed::Encode for #name#gen_params
+        where #terminated_bounds
+        {
             #[inline]
             fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> ::ed::Result<()> {
                 #encode_into
@@ -52,11 +50,9 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
 fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let name = &item.ident;
 
-    let gen_bounds = gen_bounds_modified(
-        &item.generics,
-        vec![quote!(::ed::Encode), quote!(::ed::Terminated)],
-    );
+    let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
+    let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
 
     let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
@@ -97,7 +93,9 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     };
 
     quote! {
-        impl#gen_bounds ::ed::Encode for #name#gen_params {
+        impl#generics ::ed::Encode for #name#gen_params
+        where #terminated_bounds
+        {
             #encode_into
             #encoding_length
         }
@@ -122,14 +120,14 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let decode = fields_decode(&data.fields, None);
     let decode_into = fields_decode_into(&data.fields, None);
 
-    let gen_bounds = gen_bounds_modified(
-        &item.generics,
-        vec![quote!(::ed::Decode), quote!(::ed::Terminated)],
-    );
+    let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
+    let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
 
     quote! {
-        impl#gen_bounds ed::Decode for #name#gen_params {
+        impl#generics ed::Decode for #name#gen_params
+        where #terminated_bounds
+        {
             #[inline]
             fn decode<R: std::io::Read>(mut input: R) -> ed::Result<Self> {
                 Ok(#decode)
@@ -144,14 +142,12 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     }
 }
 
-fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
+fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream{
     let name = &item.ident;
 
-    let gen_bounds = gen_bounds_modified(
-        &item.generics,
-        vec![quote!(::ed::Decode), quote!(::ed::Terminated)],
-    );
+    let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
+    let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
 
     let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
@@ -160,7 +156,9 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
     });
 
     quote! {
-        impl#gen_bounds ::ed::Decode for #name#gen_params {
+        impl#generics ::ed::Decode for #name#gen_params
+        where #terminated_bounds
+        {
             #[inline]
             fn decode<R: std::io::Read>(mut input: R) -> ::ed::Result<Self> {
                 let mut variant = [0; 1];
@@ -215,31 +213,44 @@ fn iter_field_destructure(variant: &Variant) -> Box<dyn Iterator<Item = TokenStr
     }
 }
 
+fn iter_field_groups(item: DeriveInput) -> Box<dyn Iterator<Item=Fields>> {
+    match item.data {
+        Data::Struct(data) => Box::new(vec![data.fields].into_iter()),
+        Data::Enum(data) => {
+            Box::new(data.variants.into_iter().map(|v| v.fields))
+        }
+        Data::Union(_) => unimplemented!("Not implemented for unions"),
+    }
+}
+
+fn iter_terminated_bounds(item: &DeriveInput, add: TokenStream) -> TokenStream {
+    let bounds = iter_field_groups(item.clone()).map(|fields| {
+        if fields.len() == 0 {
+            return quote!();
+        }
+
+        let bounds = iter_fields(&fields)
+            .map(|f| f.ty.clone())
+            .enumerate()
+            .map(|(i, ty)| {
+                let terminated = if i < fields.len() - 1 {
+                    quote!(::ed::Terminated +)
+                } else {
+                    quote!()
+                };
+                quote!(#ty: #terminated #add,)
+            });
+        quote!(#(#bounds)*)
+    });
+    quote!(#(#bounds)*)
+}
+
 fn variant_destructure(variant: &Variant) -> TokenStream {
     let names = iter_field_destructure(&variant);
     match &variant.fields {
         Fields::Named(fields) => quote!({ #(#names),* }),
         Fields::Unnamed(fields) => quote!(( #(#names),* )),
         Fields::Unit => quote!(),
-    }
-}
-
-fn gen_bounds_modified(generics: &Generics, add: Vec<TokenStream>) -> TokenStream {
-    let add: Vec<TypeParamBound> = add.iter().map(|add| parse_quote!(#add)).collect();
-
-    let gen_bounds = generics.params.iter().cloned().map(|mut p| {
-        if let GenericParam::Type(ref mut p) = p {
-            for add in add.iter().cloned() {
-                p.bounds.push(add);
-            }
-        }
-        quote!(#p)
-    });
-
-    if gen_bounds.len() == 0 {
-        quote!()
-    } else {
-        quote!(<#(#gen_bounds),*>)
     }
 }
 
@@ -280,9 +291,6 @@ fn fields_encode_into(
     let parent_dot = parent.as_ref().map(|_| quote!(.));
 
     quote! {
-        fn assert_trait_bounds<T: ::ed::Encode + ::ed::Terminated>(_: &T) {}
-        #(assert_trait_bounds(#assert_ampersand#parent#parent_dot#field_names_minus_last);)*
-
         #(#parent#parent_dot#field_names.encode_into(&mut dest)?;)*
     }
 }
