@@ -29,14 +29,18 @@ enum Bar {
   C,
 }
 
+trait Subtype {
+  type Subtype;
+}
+
 #[derive(Encode, Decode)]
-enum Bar2<T: Default, U> {
+enum Bar2<T: Subtype, U> {
   A {
     x: u32,
     y: (u32, u32),
   },
   B(u32, (u32, u32)),
   C,
-  D(T, U),
+  D(T::Subtype, U),
 }
 
