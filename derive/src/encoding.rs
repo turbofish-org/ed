@@ -27,6 +27,8 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)), false);
     let encoding_length =
         fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
+        
+    let terminated = terminated_impl(&item);
 
     quote! {
         impl#generics ::ed::Encode for #name#gen_params
@@ -44,6 +46,8 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
                 Ok(#encoding_length)
             }
         }
+
+        #terminated
     }
 }
 
@@ -92,6 +96,8 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
         }
     };
 
+    let terminated = terminated_impl(&item);
+
     quote! {
         impl#generics ::ed::Encode for #name#gen_params
         where #terminated_bounds
@@ -99,6 +105,8 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
             #encode_into
             #encoding_length
         }
+
+        #terminated
     }
 }
 
@@ -173,6 +181,28 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream{
 
             // TODO: decode_into
         }
+    }
+}
+
+fn terminated_impl(item: &DeriveInput) -> TokenStream {
+    let name = &item.ident;
+
+    let generics = &item.generics;
+    let gen_params = gen_param_input(&item.generics);
+
+    let bounds = iter_field_groups(item.clone()).map(|fields| {
+        let bounds = fields
+            .iter()
+            .map(|f| f.ty.clone())
+            .map(|ty| quote!(#ty: ::ed::Terminated,));
+        quote!(#(#bounds)*)
+    });
+    let bounds = quote!(#(#bounds)*);
+
+    quote! {
+        impl#generics ::ed::Terminated for #name#gen_params
+        where #bounds
+        {}
     }
 }
 
