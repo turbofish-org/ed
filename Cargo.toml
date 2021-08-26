@@ -1,14 +1,13 @@
 [package]
 name = "ed"
-version = "0.1.7-alpha.0"
+version = "0.2.1-alpha.0"
 authors = ["Matt Bell <mappum@gmail.com>"]
 edition = "2018"
 description = "Encode and Decode traits"
 license = "MIT"
 
 [dependencies]
-seq-macro = "0.1.5"
-ed-derive = "0.1.1"
+ed-derive = "0.2.1"
 thiserror = "1.0"
 
 [dev-dependencies]
