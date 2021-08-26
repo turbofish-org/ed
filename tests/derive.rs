@@ -9,10 +9,6 @@ struct Foo {
 #[derive(Encode, Decode)]
 struct Foo2(u32, (u32, u32));
 
-fn main() {
-  Foo2::decode(&[][..]);
-}
-
 #[derive(Encode, Decode)]
 struct Foo3;
 
