@@ -1,6 +1,5 @@
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use syn::punctuated::Punctuated;
 use syn::*;
 
 // TODO: use correct spans so errors are shown on fields
@@ -24,7 +23,7 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
 
-    let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)), false);
+    let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)));
     let encoding_length =
         fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
         
@@ -58,11 +57,11 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
 
-    let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
+    let arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
         let ident = &v.ident;
         let destructure = variant_destructure(&v);
-        let encode = fields_encode_into(iter_field_destructure(&v), None, true);
+        let encode = fields_encode_into(iter_field_destructure(&v), None);
         quote!(Self::#ident #destructure => {
             dest.write_all(&[ #i ][..])?;
             #encode
@@ -80,7 +79,7 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
         }
     };
 
-    let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
+    let arms = data.variants.iter().map(|v| {
         let arm = fields_encoding_length(iter_field_destructure(&v), None);
         let ident = &v.ident;
         let destructure = variant_destructure(&v);
@@ -157,7 +156,7 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream{
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
 
-    let mut arms = data.variants.iter().enumerate().map(|(i, v)| {
+    let arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
         let arm = fields_decode(&v.fields, Some(v.ident.clone()));
         quote!(#i => { #arm })
@@ -232,7 +231,7 @@ fn iter_field_destructure(variant: &Variant) -> Box<dyn Iterator<Item = TokenStr
             let ident = v.ident;
             quote!(#ident)
         })),
-        Fields::Unnamed(fields) => Box::new((0..variant.fields.len()).map(|i| {
+        Fields::Unnamed(_) => Box::new((0..variant.fields.len()).map(|i| {
             let ident = Ident::new(
                 ("var".to_string() + i.to_string().as_str()).as_str(),
                 Span::call_site(),
@@ -278,8 +277,8 @@ fn iter_terminated_bounds(item: &DeriveInput, add: TokenStream) -> TokenStream {
 fn variant_destructure(variant: &Variant) -> TokenStream {
     let names = iter_field_destructure(&variant);
     match &variant.fields {
-        Fields::Named(fields) => quote!({ #(#names),* }),
-        Fields::Unnamed(fields) => quote!(( #(#names),* )),
+        Fields::Named(_) => quote!({ #(#names),* }),
+        Fields::Unnamed(_) => quote!(( #(#names),* )),
         Fields::Unit => quote!(),
     }
 }
@@ -310,13 +309,10 @@ fn gen_param_input(generics: &Generics) -> TokenStream {
 fn fields_encode_into(
     field_names: impl Iterator<Item = TokenStream>,
     parent: Option<TokenStream>,
-    borrowed: bool,
 ) -> TokenStream {
-    let mut field_names: Vec<_> = field_names.collect();
+    let field_names: Vec<_> = field_names.collect();
     let mut field_names_minus_last = field_names.clone();
     field_names_minus_last.pop();
-
-    let assert_ampersand = if borrowed { quote!() } else { quote!(&) };
 
     let parent_dot = parent.as_ref().map(|_| quote!(.));
 
@@ -337,7 +333,7 @@ fn fields_encoding_length(
 }
 
 fn fields_decode(fields: &Fields, variant_name: Option<Ident>) -> TokenStream {
-    let mut field_names = iter_field_names(&fields);
+    let field_names = iter_field_names(&fields);
 
     let item_name = match variant_name {
         Some(name) => quote!(Self::#name),
@@ -354,7 +350,7 @@ fn fields_decode(fields: &Fields, variant_name: Option<Ident>) -> TokenStream {
 }
 
 fn fields_decode_into(fields: &Fields, parent: Option<TokenStream>) -> TokenStream {
-    let mut field_names = iter_field_names(&fields);
+    let field_names = iter_field_names(&fields);
     let parent = parent.unwrap_or(quote!(self));
 
     quote! {
