@@ -28,6 +28,7 @@
 //! ## Usage
 //!
 //! ```rust
+//! #![feature(trivial_bounds)]
 //! use ed::{Encode, Decode};
 //!
 //! # fn main() -> ed::Result<()> {
@@ -65,8 +66,6 @@
 //! # Ok(())
 //! # }
 //! ```
-
-#![feature(auto_traits)]
 
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -159,7 +158,7 @@ pub trait Decode: Sized {
 /// For an example of something which is NOT terminated, consider `Vec<u8>`. Its
 /// encoding and decoding do not use a length prefix or end with a null byte, so
 /// `decode` would have no way to know where to stop reading.
-pub auto trait Terminated {}
+pub trait Terminated {}
 
 macro_rules! int_impl {
     ($type:ty, $length:expr) => {
