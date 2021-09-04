@@ -38,7 +38,7 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
         where #where_preds #terminated_bounds
         {
             #[inline]
-            fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> ::ed::Result<()> {
+            fn encode_into<__W: std::io::Write>(&self, mut dest: &mut __W) -> ::ed::Result<()> {
                 #encode_into
 
                 Ok(())
@@ -78,7 +78,7 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
 
     let encode_into = quote! {
         #[inline]
-        fn encode_into<W: std::io::Write>(&self, mut dest: &mut W) -> ::ed::Result<()> {
+        fn encode_into<__W: std::io::Write>(&self, mut dest: &mut __W) -> ::ed::Result<()> {
             match self {
                 #(#arms)*
             }
@@ -148,12 +148,12 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
         where #where_preds #terminated_bounds
         {
             #[inline]
-            fn decode<R: std::io::Read>(mut input: R) -> ed::Result<Self> {
+            fn decode<__R: std::io::Read>(mut input: __R) -> ed::Result<Self> {
                 Ok(#decode)
             }
 
             #[inline]
-            fn decode_into<R: std::io::Read>(&mut self, mut input: R) -> ed::Result<()> {
+            fn decode_into<__R: std::io::Read>(&mut self, mut input: __R) -> ed::Result<()> {
                 #decode_into
                 Ok(())
             }
@@ -183,7 +183,7 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream{
         where #where_preds #terminated_bounds
         {
             #[inline]
-            fn decode<R: std::io::Read>(mut input: R) -> ::ed::Result<Self> {
+            fn decode<__R: std::io::Read>(mut input: __R) -> ::ed::Result<Self> {
                 let mut variant = [0; 1];
                 input.read_exact(&mut variant[..])?;
                 let variant = variant[0];
