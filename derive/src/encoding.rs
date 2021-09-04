@@ -22,7 +22,10 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| &w.predicates);
+    let where_preds = item.generics.where_clause.as_ref().map(|w| {
+        let preds =  w.predicates.clone().into_iter();
+        quote!(#(#preds,)*)
+    }).unwrap_or_default();
 
     let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)));
     let encoding_length =
@@ -57,7 +60,10 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| &w.predicates);
+    let where_preds = item.generics.where_clause.as_ref().map(|w| {
+        let preds =  w.predicates.clone().into_iter();
+        quote!(#(#preds,)*)
+    }).unwrap_or_default();
 
     let arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
@@ -132,7 +138,10 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| &w.predicates);
+    let where_preds = item.generics.where_clause.as_ref().map(|w| {
+        let preds =  w.predicates.clone().into_iter();
+        quote!(#(#preds,)*)
+    }).unwrap_or_default();
 
     quote! {
         impl#generics ed::Decode for #name#gen_params
@@ -158,7 +167,10 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream{
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| &w.predicates);
+    let where_preds = item.generics.where_clause.as_ref().map(|w| {
+        let preds =  w.predicates.clone().into_iter();
+        quote!(#(#preds,)*)
+    }).unwrap_or_default();
 
     let arms = data.variants.iter().enumerate().map(|(i, v)| {
         let i = i as u8;
@@ -192,7 +204,10 @@ fn terminated_impl(item: &DeriveInput) -> TokenStream {
 
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
-    let where_preds = item.generics.where_clause.as_ref().map(|w| &w.predicates);
+    let where_preds = item.generics.where_clause.as_ref().map(|w| {
+        let preds =  w.predicates.clone().into_iter();
+        quote!(#(#preds,)*)
+    }).unwrap_or_default();
 
     let bounds = iter_field_groups(item.clone()).map(|fields| {
         let bounds = fields
