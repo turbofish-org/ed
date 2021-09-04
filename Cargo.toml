@@ -7,7 +7,7 @@ description = "Encode and Decode traits"
 license = "MIT"
 
 [dependencies]
-ed-derive = "0.2.2"
+ed-derive = "0.2.3"
 thiserror = "1.0"
 
 [dev-dependencies]
