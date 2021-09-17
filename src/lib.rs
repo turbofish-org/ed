@@ -562,6 +562,33 @@ impl<T: Decode> Decode for Box<T> {
     }
 }
 
+impl<T> Encode for std::marker::PhantomData<T> {
+    /// Encoding PhantomData is a no-op.
+    #[inline]
+    #[cfg_attr(test, mutate)]
+    fn encode_into<W: Write>(&self, _: &mut W) -> Result<()> {
+        Ok(())
+    }
+
+    /// Always returns Ok(0).
+    #[inline]
+    #[cfg_attr(test, mutate)]
+    fn encoding_length(&self) -> Result<usize> {
+        Ok(0)
+    }
+}
+
+impl<T> Decode for std::marker::PhantomData<T> {
+    /// Returns a PhantomData without reading any bytes.
+    #[inline]
+    #[cfg_attr(test, mutate)]
+    fn decode<R: Read>(_: R) -> Result<Self> {
+        Ok(Self {})
+    }
+}
+
+impl<T> Terminated for std::marker::PhantomData<T> {}
+
 #[cfg(test)]
 use mutagen::mutate;
 mod tests {
@@ -690,6 +717,16 @@ mod tests {
         let bytes = vec![42];
         let result: Result<bool> = Decode::decode(bytes.as_slice());
         assert_eq!(result.unwrap_err().to_string(), "Unexpected byte: 42");
+    }
+
+    #[test]
+    fn test_encode_decode_phantom_data() {
+        use std::marker::PhantomData;
+        let pd: PhantomData<u8> = PhantomData;
+        let bytes = pd.encode().unwrap();
+        assert_eq!(bytes.len(), 0);
+        let decoded_value: PhantomData<u8> = Decode::decode(bytes.as_slice()).unwrap();
+        assert_eq!(decoded_value, PhantomData);
     }
 
     #[test]
@@ -827,5 +864,13 @@ mod tests {
         let unit = ();
         let length = unit.encoding_length().unwrap();
         assert!(length == 0);
+    }
+
+    #[test]
+    fn test_phantom_data_encoding_length() {
+        use std::marker::PhantomData;
+        let pd: PhantomData<u8> = PhantomData;
+        let length = pd.encoding_length().unwrap();
+        assert_eq!(length, 0);
     }
 }
