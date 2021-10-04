@@ -398,6 +398,11 @@ tuple_impl!(A, B, C; D);
 tuple_impl!(A, B, C, D; E);
 tuple_impl!(A, B, C, D, E; F);
 tuple_impl!(A, B, C, D, E, F; G);
+tuple_impl!(A, B, C, D, E, F, G; H);
+tuple_impl!(A, B, C, D, E, F, G, H; I);
+tuple_impl!(A, B, C, D, E, F, G, H, I; J);
+tuple_impl!(A, B, C, D, E, F, G, H, I, J; K);
+tuple_impl!(A, B, C, D, E, F, G, H, I, J, K; L);
 
 impl<T: Encode + Terminated, const N: usize> Encode for [T; N] {
     #[inline]
