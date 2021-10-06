@@ -1,3 +1,5 @@
+#![feature(fundamental)]
+
 //! *`ed` is a minimalist crate for deterministic binary encodings.*
 //!
 //! ## Overview
@@ -85,6 +87,7 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// A trait for values that can be encoded into bytes deterministically.
+#[fundamental]
 pub trait Encode {
     /// Writes the encoded representation of the value to the destination
     /// writer. Can error due to either a write error from `dest`, or an
@@ -116,6 +119,7 @@ pub trait Encode {
 }
 
 /// A trait for values that can be decoded from bytes deterministically.
+#[fundamental]
 pub trait Decode: Sized {
     /// Reads bytes from the reader and returns the decoded value.
     ///
