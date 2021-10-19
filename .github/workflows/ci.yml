@@ -13,6 +13,8 @@ jobs:
   Build Base:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -27,6 +29,8 @@ jobs:
   Build All Features:    
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -41,6 +45,8 @@ jobs:
   Test Base:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -55,6 +61,8 @@ jobs:
   Test All Features:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -69,6 +77,8 @@ jobs:
   Coverage:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -92,6 +102,8 @@ jobs:
   Format:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -107,6 +119,8 @@ jobs:
   Clippy:
     runs-on: ubuntu-latest 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Nightly
       uses: actions-rs/toolchain@v1
       with:
