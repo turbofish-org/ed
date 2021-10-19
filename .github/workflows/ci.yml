@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  Build Base:
+  build-base:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -26,7 +26,7 @@ jobs:
           command: build
           args: --verbose
 
-  Build All Features:    
+  build-all-features:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -42,7 +42,7 @@ jobs:
           command: build
           args: --verbose --all-features
 
-  Test Base:
+  test-base:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -58,7 +58,7 @@ jobs:
           command: test
           args: --verbose
       
-  Test All Features:
+  test-all-features:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -74,7 +74,7 @@ jobs:
           command: test
           args: --verbose --all-features
 
-  Coverage:
+  coverage:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -101,7 +101,7 @@ jobs:
           files: lcov.info
           fail_ci_if_error: true
     
-  Format:
+  format:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -118,7 +118,7 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  Clippy:
+  clippy:
     runs-on: ubuntu-latest 
     steps:
     - name: Checkout
