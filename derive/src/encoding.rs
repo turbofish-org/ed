@@ -22,15 +22,20 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| {
-        let preds =  w.predicates.clone().into_iter();
-        quote!(#(#preds,)*)
-    }).unwrap_or_default();
+    let where_preds = item
+        .generics
+        .where_clause
+        .as_ref()
+        .map(|w| {
+            let preds = w.predicates.clone().into_iter();
+            quote!(#(#preds,)*)
+        })
+        .unwrap_or_default();
 
     let encode_into = fields_encode_into(iter_field_names(&data.fields), Some(quote!(self)));
     let encoding_length =
         fields_encoding_length(iter_field_names(&data.fields), Some(quote!(self)));
-        
+
     let terminated = terminated_impl(&item);
 
     quote! {
@@ -60,45 +65,61 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| {
-        let preds =  w.predicates.clone().into_iter();
-        quote!(#(#preds,)*)
-    }).unwrap_or_default();
-
-    let arms = data.variants.iter().enumerate().map(|(i, v)| {
-        let i = i as u8;
-        let ident = &v.ident;
-        let destructure = variant_destructure(&v);
-        let encode = fields_encode_into(iter_field_destructure(&v), None);
-        quote!(Self::#ident #destructure => {
-            dest.write_all(&[ #i ][..])?;
-            #encode
+    let where_preds = item
+        .generics
+        .where_clause
+        .as_ref()
+        .map(|w| {
+            let preds = w.predicates.clone().into_iter();
+            quote!(#(#preds,)*)
         })
-    });
+        .unwrap_or_default();
+
+    let arms = data
+        .variants
+        .iter()
+        .filter(|v| filter_skipped_variants(*v))
+        .enumerate()
+        .map(|(i, v)| {
+            let i = i as u8;
+            let ident = &v.ident;
+            let destructure = variant_destructure(&v);
+            let encode = fields_encode_into(iter_field_destructure(&v), None);
+            quote!(Self::#ident #destructure => {
+                dest.write_all(&[ #i ][..])?;
+                #encode
+            })
+        });
 
     let encode_into = quote! {
         #[inline]
         fn encode_into<__W: std::io::Write>(&self, mut dest: &mut __W) -> ::ed::Result<()> {
             match self {
                 #(#arms)*
+                _ => return Err(::ed::Error::UnencodableVariant)
             }
 
             Ok(())
         }
     };
 
-    let arms = data.variants.iter().map(|v| {
-        let arm = fields_encoding_length(iter_field_destructure(&v), None);
-        let ident = &v.ident;
-        let destructure = variant_destructure(&v);
-        quote!(Self::#ident #destructure => { #arm })
-    });
+    let arms = data
+        .variants
+        .iter()
+        .filter(|v| filter_skipped_variants(*v))
+        .map(|v| {
+            let arm = fields_encoding_length(iter_field_destructure(&v), None);
+            let ident = &v.ident;
+            let destructure = variant_destructure(&v);
+            quote!(Self::#ident #destructure => { #arm })
+        });
 
     let encoding_length = quote! {
         #[inline]
         fn encoding_length(&self) -> ::ed::Result<usize> {
             Ok(1 + match self {
                 #(#arms)*
+                _ => return Err(::ed::Error::UnencodableVariant)
             })
         }
     };
@@ -138,10 +159,15 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| {
-        let preds =  w.predicates.clone().into_iter();
-        quote!(#(#preds,)*)
-    }).unwrap_or_default();
+    let where_preds = item
+        .generics
+        .where_clause
+        .as_ref()
+        .map(|w| {
+            let preds = w.predicates.clone().into_iter();
+            quote!(#(#preds,)*)
+        })
+        .unwrap_or_default();
 
     quote! {
         impl#generics ed::Decode for #name#gen_params
@@ -161,22 +187,32 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     }
 }
 
-fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream{
+fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let name = &item.ident;
 
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
-    let where_preds = item.generics.where_clause.as_ref().map(|w| {
-        let preds =  w.predicates.clone().into_iter();
-        quote!(#(#preds,)*)
-    }).unwrap_or_default();
+    let where_preds = item
+        .generics
+        .where_clause
+        .as_ref()
+        .map(|w| {
+            let preds = w.predicates.clone().into_iter();
+            quote!(#(#preds,)*)
+        })
+        .unwrap_or_default();
 
-    let arms = data.variants.iter().enumerate().map(|(i, v)| {
-        let i = i as u8;
-        let arm = fields_decode(&v.fields, Some(v.ident.clone()));
-        quote!(#i => { #arm })
-    });
+    let arms = data
+        .variants
+        .iter()
+        .filter(|v| filter_skipped_variants(*v))
+        .enumerate()
+        .map(|(i, v)| {
+            let i = i as u8;
+            let arm = fields_decode(&v.fields, Some(v.ident.clone()));
+            quote!(#i => { #arm })
+        });
 
     quote! {
         impl#generics ::ed::Decode for #name#gen_params
@@ -204,10 +240,15 @@ fn terminated_impl(item: &DeriveInput) -> TokenStream {
 
     let generics = &item.generics;
     let gen_params = gen_param_input(&item.generics);
-    let where_preds = item.generics.where_clause.as_ref().map(|w| {
-        let preds =  w.predicates.clone().into_iter();
-        quote!(#(#preds,)*)
-    }).unwrap_or_default();
+    let where_preds = item
+        .generics
+        .where_clause
+        .as_ref()
+        .map(|w| {
+            let preds = w.predicates.clone().into_iter();
+            quote!(#(#preds,)*)
+        })
+        .unwrap_or_default();
 
     let bounds = iter_field_groups(item.clone()).map(|fields| {
         let bounds = fields
@@ -262,12 +303,19 @@ fn iter_field_destructure(variant: &Variant) -> Box<dyn Iterator<Item = TokenStr
     }
 }
 
-fn iter_field_groups(item: DeriveInput) -> Box<dyn Iterator<Item=Fields>> {
+fn filter_skipped_variants(variant: &Variant) -> bool {
+    !variant.attrs.iter().any(|attr| attr.path.is_ident("skip"))
+}
+
+fn iter_field_groups(item: DeriveInput) -> Box<dyn Iterator<Item = Fields>> {
     match item.data {
         Data::Struct(data) => Box::new(vec![data.fields].into_iter()),
-        Data::Enum(data) => {
-            Box::new(data.variants.into_iter().map(|v| v.fields))
-        }
+        Data::Enum(data) => Box::new(
+            data.variants
+                .into_iter()
+                .filter(filter_skipped_variants)
+                .map(|v| v.fields),
+        ),
         Data::Union(_) => unimplemented!("Not implemented for unions"),
     }
 }
