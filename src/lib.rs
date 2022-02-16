@@ -79,6 +79,8 @@ pub use ed_derive::*;
 pub enum Error {
     #[error("Unexpected byte: {0}")]
     UnexpectedByte(u8),
+    #[error("Unencodable variant")]
+    UnencodableVariant,
     #[error(transparent)]
     IOError(#[from] std::io::Error),
 }
