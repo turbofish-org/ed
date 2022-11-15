@@ -573,6 +573,44 @@ impl<T: Decode> Decode for Box<T> {
     }
 }
 
+impl<T: Terminated> Terminated for Box<T> {}
+
+impl<T: Encode> Encode for std::cell::RefCell<T> {
+    #[doc = "Encodes the inner value."]
+    #[cfg_attr(test, mutate)]
+    #[inline]
+    fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
+        self.borrow().encode_into(dest)
+    }
+
+    #[doc = "Returns the encoding length of the inner value."]
+    #[cfg_attr(test, mutate)]
+    #[inline]
+    fn encoding_length(&self) -> Result<usize> {
+        self.borrow().encoding_length()
+    }
+}
+
+impl<T: Decode> Decode for std::cell::RefCell<T> {
+    #[doc = "Decodes the inner value into a new RefCell."]
+    #[cfg_attr(test, mutate)]
+    #[inline]
+    fn decode<R: Read>(input: R) -> Result<Self> {
+        T::decode(input).map(std::cell::RefCell::new)
+    }
+
+    #[doc = "Decodes the inner value into the existing Box."]
+    #[doc = ""]
+    #[doc = "Recursively calls `decode_into` on the inner value."]
+    #[cfg_attr(test, mutate)]
+    #[inline]
+    fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
+        self.borrow_mut().decode_into(input)
+    }
+}
+
+impl<T: Terminated> Terminated for std::cell::RefCell<T> {}
+
 impl<T> Encode for std::marker::PhantomData<T> {
     /// Encoding PhantomData is a no-op.
     #[inline]
