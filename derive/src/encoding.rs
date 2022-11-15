@@ -19,7 +19,12 @@ pub fn derive_encode(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let name = &item.ident;
 
-    let generics = &item.generics;
+    let mut generics_sanitized = item.generics.clone();
+    generics_sanitized.params.iter_mut().for_each(|p| {
+        if let GenericParam::Type(ref mut ty) = p {
+            ty.default.take();
+        }
+    });
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
     let where_preds = item
@@ -39,7 +44,7 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let terminated = terminated_impl(&item);
 
     quote! {
-        impl#generics ::ed::Encode for #name#gen_params
+        impl#generics_sanitized ::ed::Encode for #name#gen_params
         where #where_preds #terminated_bounds
         {
             #[inline]
@@ -62,7 +67,12 @@ fn struct_encode(item: DeriveInput, data: DataStruct) -> TokenStream {
 fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let name = &item.ident;
 
-    let generics = &item.generics;
+    let mut generics_sanitized = item.generics.clone();
+    generics_sanitized.params.iter_mut().for_each(|p| {
+        if let GenericParam::Type(ref mut ty) = p {
+            ty.default.take();
+        }
+    });
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Encode));
     let where_preds = item
@@ -127,7 +137,7 @@ fn enum_encode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let terminated = terminated_impl(&item);
 
     quote! {
-        impl#generics ::ed::Encode for #name#gen_params
+        impl#generics_sanitized ::ed::Encode for #name#gen_params
         where #where_preds #terminated_bounds
         {
             #encode_into
@@ -156,7 +166,12 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
     let decode = fields_decode(&data.fields, None);
     let decode_into = fields_decode_into(&data.fields, None);
 
-    let generics = &item.generics;
+    let mut generics = item.generics.clone();
+    generics.params.iter_mut().for_each(|p| {
+        if let GenericParam::Type(ref mut ty) = p {
+            ty.default.take();
+        }
+    });
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
     let where_preds = item
@@ -190,7 +205,12 @@ fn struct_decode(item: DeriveInput, data: DataStruct) -> TokenStream {
 fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
     let name = &item.ident;
 
-    let generics = &item.generics;
+    let mut generics = item.generics.clone();
+    generics.params.iter_mut().for_each(|p| {
+        if let GenericParam::Type(ref mut ty) = p {
+            ty.default.take();
+        }
+    });
     let gen_params = gen_param_input(&item.generics);
     let terminated_bounds = iter_terminated_bounds(&item, quote!(::ed::Decode));
     let where_preds = item
@@ -238,7 +258,12 @@ fn enum_decode(item: DeriveInput, data: DataEnum) -> TokenStream {
 fn terminated_impl(item: &DeriveInput) -> TokenStream {
     let name = &item.ident;
 
-    let generics = &item.generics;
+    let mut generics = item.generics.clone();
+    generics.params.iter_mut().for_each(|p| {
+        if let GenericParam::Type(ref mut ty) = p {
+            ty.default.take();
+        }
+    });
     let gen_params = gen_param_input(&item.generics);
     let where_preds = item
         .generics
@@ -331,7 +356,7 @@ fn iter_terminated_bounds(item: &DeriveInput, add: TokenStream) -> TokenStream {
             .enumerate()
             .map(|(i, ty)| {
                 let terminated = if i < fields.len() - 1 {
-                    quote!(::ed::Terminated +)
+                    quote!(::ed::Terminated+)
                 } else {
                     quote!()
                 };
