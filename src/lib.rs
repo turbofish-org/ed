@@ -2,10 +2,10 @@
 //!
 //! ## Overview
 //!
-//! This crate provides `Encode` and `Decode` traits which can be implemented for any
-//! type that can be converted to or from bytes, and implements these traits for
-//! many built-in Rust types. It also provides derive macros so that `Encode`
-//! and `Decode` can be easily derived for structs.
+//! This crate provides `Encode` and `Decode` traits which can be implemented
+//! for any type that can be converted to or from bytes, and implements these
+//! traits for many built-in Rust types. It also provides derive macros so that
+//! `Encode` and `Decode` can be easily derived for structs.
 //!
 //! `ed` is far simpler than `serde` because it does not attempt to create an
 //! abstraction which allows arbitrary kinds of encoding (JSON, MessagePack,
@@ -238,8 +238,8 @@ impl Decode for bool {
 impl Terminated for bool {}
 
 impl<T: Encode> Encode for Option<T> {
-    /// Encodes as a 0 byte for `None`, or as a 1 byte followed by the encoding of
-    /// the inner value for `Some`.
+    /// Encodes as a 0 byte for `None`, or as a 1 byte followed by the encoding
+    /// of the inner value for `Some`.
     #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
