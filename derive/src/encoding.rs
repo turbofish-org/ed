@@ -329,7 +329,10 @@ fn iter_field_destructure(variant: &Variant) -> Box<dyn Iterator<Item = TokenStr
 }
 
 fn filter_skipped_variants(variant: &Variant) -> bool {
-    !variant.attrs.iter().any(|attr| attr.path().is_ident("skip"))
+    !variant
+        .attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("skip"))
 }
 
 fn iter_field_groups(item: DeriveInput) -> Box<dyn Iterator<Item = Fields>> {
