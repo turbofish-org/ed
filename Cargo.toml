@@ -1,10 +1,10 @@
 [package]
 name = "ed"
 version = "0.3.0"
-authors = ["Matt Bell <mappum@gmail.com>"]
+authors = ["Turbofish <team@turbofish.org>"]
 edition = "2018"
-description = "Encode and Decode traits"
-license = "MIT"
+description = "A minimalist crate for deterministic binary encodings in Rust."
+license = "Apache-2.0"
 
 [dependencies]
 ed-derive = { version = "0.3.0", path = "derive" }
@@ -15,4 +15,3 @@ lto = true
 
 [profile.release]
 lto = true
-

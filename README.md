@@ -1,4 +1,10 @@
-# ed (encode/decode)
+<h1 align="left">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./ed-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./ed.svg">
+  <img alt="ed" src="./ed.svg">
+</picture>
+</h1>
 
 *A minimalist crate for deterministic binary encodings in Rust.*
 
@@ -6,8 +12,6 @@
 [![codecov](https://codecov.io/gh/nomic-io/ed/branch/master/graph/badge.svg?token=BZK1DP4CF4)](https://codecov.io/gh/nomic-io/ed)
 [![Crate](https://img.shields.io/crates/v/ed.svg)](https://crates.io/crates/ed)
 [![API](https://docs.rs/ed/badge.svg)](https://docs.rs/ed)
-
-## Overview
 
 This crate provides `Encode` and `Decode` traits which can be implemented for any type that can be converted to or from bytes, and implements these traits for many built-in Rust types. It also provides derive macros so that `Encode` and `Decode` can be easily derived for structs.
 
@@ -50,3 +54,30 @@ assert_eq!(foo, Foo {
 bytes.clear();
 foo.encode_into(&mut bytes)?;
 ```
+Ed is currently used by [Nomic](https://github.com/nomic-io/nomic), a blockchain powering decentralized custody of Bitcoin, built on [Orga](https://github.com/turbofish-org/orga).
+
+## Contributing
+
+Ed is an open-source project spearheaded by Turbofish. Anyone is able to contribute to Ed via GitHub.
+
+[Contribute to Ed](https://github.com/turbofish-io/ed/contribute)
+
+## Security
+
+Ed is currently undergoing security audits.
+
+Vulnerabilities should not be reported through public channels, including GitHub Issues. You can report a vulnerability via GitHub's Private Vulnerability Reporting or to Turbofish at `security@turbofish.org`.
+
+[Report a Vulnerability](https://github.com/turbofish-org/ed/security/advisories/new)
+
+## License
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use the files in this repository except in compliance with the License. You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+---
+
+Copyright © 2024 Turbofish, Inc.
