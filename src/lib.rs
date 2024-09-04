@@ -1,13 +1,11 @@
-#![feature(fundamental)]
-
 //! *`ed` is a minimalist crate for deterministic binary encodings.*
 //!
 //! ## Overview
 //!
-//! This crate provides `Encode` and `Decode` traits which can be implemented for any
-//! type that can be converted to or from bytes, and implements these traits for
-//! many built-in Rust types. It also provides derive macros so that `Encode`
-//! and `Decode` can be easily derived for structs.
+//! This crate provides `Encode` and `Decode` traits which can be implemented
+//! for any type that can be converted to or from bytes, and implements these
+//! traits for many built-in Rust types. It also provides derive macros so that
+//! `Encode` and `Decode` can be easily derived for structs.
 //!
 //! `ed` is far simpler than `serde` because it does not attempt to create an
 //! abstraction which allows arbitrary kinds of encoding (JSON, MessagePack,
@@ -89,7 +87,6 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// A trait for values that can be encoded into bytes deterministically.
-#[fundamental]
 pub trait Encode {
     /// Writes the encoded representation of the value to the destination
     /// writer. Can error due to either a write error from `dest`, or an
@@ -111,7 +108,6 @@ pub trait Encode {
     /// [`encode_into`](#method.encode_into) since `encode` usually involves
     /// allocating a new `Vec<u8>`.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encode(&self) -> Result<Vec<u8>> {
         let length = self.encoding_length()?;
         let mut bytes = Vec::with_capacity(length);
@@ -121,7 +117,6 @@ pub trait Encode {
 }
 
 /// A trait for values that can be decoded from bytes deterministically.
-#[fundamental]
 pub trait Decode: Sized {
     /// Reads bytes from the reader and returns the decoded value.
     ///
@@ -143,7 +138,6 @@ pub trait Decode: Sized {
     /// [`decode`](#method.decode) for ease of implementation, but should be
     /// overridden when in-place decoding is possible.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         let value = Self::decode(input)?;
         *self = value;
@@ -213,7 +207,6 @@ int_impl!(i128, 16);
 impl Encode for bool {
     /// Encodes the boolean as a single byte: 0 for false or 1 for true.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         let bytes = [*self as u8];
         dest.write_all(&bytes[..])?;
@@ -222,7 +215,6 @@ impl Encode for bool {
 
     /// Always returns Ok(1).
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         Ok(1)
     }
@@ -232,7 +224,6 @@ impl Decode for bool {
     /// Decodes the boolean from a single byte: 0 for false or 1 for true.
     /// Errors for any other value.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(mut input: R) -> Result<Self> {
         let mut buf = [0; 1];
         input.read_exact(&mut buf[..])?;
@@ -247,10 +238,9 @@ impl Decode for bool {
 impl Terminated for bool {}
 
 impl<T: Encode> Encode for Option<T> {
-    /// Encodes as a 0 byte for `None`, or as a 1 byte followed by the encoding of
-    /// the inner value for `Some`.
+    /// Encodes as a 0 byte for `None`, or as a 1 byte followed by the encoding
+    /// of the inner value for `Some`.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         match self {
             None => dest.write_all(&[0]).map_err(Error::IOError),
@@ -264,7 +254,6 @@ impl<T: Encode> Encode for Option<T> {
     /// Length will be 1 for `None`, or 1 plus the encoding length of the inner
     /// value for `Some`.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         match self {
             None => Ok(1),
@@ -277,7 +266,6 @@ impl<T: Decode> Decode for Option<T> {
     /// Decodes a 0 byte as `None`, or a 1 byte followed by the encoding of the
     /// inner value as `Some`. Errors for all other values.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(input: R) -> Result<Self> {
         let mut option: Option<T> = None;
         option.decode_into(input)?;
@@ -291,7 +279,6 @@ impl<T: Decode> Decode for Option<T> {
     // on the inner type. When the first byte is 1 and self is `None`, `decode`
     // will be called for the inner type.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
         let mut byte = [0; 1];
         input.read_exact(&mut byte[..])?;
@@ -316,14 +303,12 @@ impl<T: Terminated> Terminated for Option<T> {}
 impl Encode for () {
     /// Encoding a unit tuple is a no-op.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, _: &mut W) -> Result<()> {
         Ok(())
     }
 
     /// Always returns Ok(0).
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         Ok(0)
     }
@@ -332,7 +317,6 @@ impl Encode for () {
 impl Decode for () {
     /// Returns a unit tuple without reading any bytes.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(_: R) -> Result<Self> {
         Ok(())
     }
@@ -463,7 +447,6 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
     }
 
     #[doc = "Returns the sum of the encoding lengths of all elements."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
@@ -476,7 +459,6 @@ impl<T: Encode + Terminated> Encode for Vec<T> {
 
 impl<T: Decode + Terminated> Decode for Vec<T> {
     #[doc = "Decodes the elements of the vector one after another, in order."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         let mut vec = Vec::with_capacity(128);
@@ -487,7 +469,6 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
     #[doc = "Encodes the elements of the vector one after another, in order."]
     #[doc = ""]
     #[doc = "Recursively calls `decode_into` for each element."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode_into<R: Read>(&mut self, mut input: R) -> Result<()> {
         let old_len = self.len();
@@ -518,7 +499,6 @@ impl<T: Decode + Terminated> Decode for Vec<T> {
 
 impl<T: Encode + Terminated> Encode for [T] {
     #[doc = "Encodes the elements of the slice one after another, in order."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encode_into<W: Write>(&self, mut dest: &mut W) -> Result<()> {
         for element in self[..].iter() {
@@ -528,7 +508,6 @@ impl<T: Encode + Terminated> Encode for [T] {
     }
 
     #[doc = "Returns the sum of the encoding lengths of all elements."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         let mut sum = 0;
@@ -541,14 +520,12 @@ impl<T: Encode + Terminated> Encode for [T] {
 
 impl<T: Encode> Encode for Box<T> {
     #[doc = "Encodes the inner value."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         (**self).encode_into(dest)
     }
 
     #[doc = "Returns the encoding length of the inner value."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         (**self).encoding_length()
@@ -557,7 +534,6 @@ impl<T: Encode> Encode for Box<T> {
 
 impl<T: Decode> Decode for Box<T> {
     #[doc = "Decodes the inner value into a new Box."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         T::decode(input).map(|v| v.into())
@@ -566,7 +542,6 @@ impl<T: Decode> Decode for Box<T> {
     #[doc = "Decodes the inner value into the existing Box."]
     #[doc = ""]
     #[doc = "Recursively calls `decode_into` on the inner value."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         (**self).decode_into(input)
@@ -577,14 +552,12 @@ impl<T: Terminated> Terminated for Box<T> {}
 
 impl<T: Encode> Encode for std::cell::RefCell<T> {
     #[doc = "Encodes the inner value."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encode_into<W: Write>(&self, dest: &mut W) -> Result<()> {
         self.borrow().encode_into(dest)
     }
 
     #[doc = "Returns the encoding length of the inner value."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn encoding_length(&self) -> Result<usize> {
         self.borrow().encoding_length()
@@ -593,7 +566,6 @@ impl<T: Encode> Encode for std::cell::RefCell<T> {
 
 impl<T: Decode> Decode for std::cell::RefCell<T> {
     #[doc = "Decodes the inner value into a new RefCell."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode<R: Read>(input: R) -> Result<Self> {
         T::decode(input).map(std::cell::RefCell::new)
@@ -602,7 +574,6 @@ impl<T: Decode> Decode for std::cell::RefCell<T> {
     #[doc = "Decodes the inner value into the existing Box."]
     #[doc = ""]
     #[doc = "Recursively calls `decode_into` on the inner value."]
-    #[cfg_attr(test, mutate)]
     #[inline]
     fn decode_into<R: Read>(&mut self, input: R) -> Result<()> {
         self.borrow_mut().decode_into(input)
@@ -614,14 +585,12 @@ impl<T: Terminated> Terminated for std::cell::RefCell<T> {}
 impl<T> Encode for std::marker::PhantomData<T> {
     /// Encoding PhantomData is a no-op.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encode_into<W: Write>(&self, _: &mut W) -> Result<()> {
         Ok(())
     }
 
     /// Always returns Ok(0).
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn encoding_length(&self) -> Result<usize> {
         Ok(0)
     }
@@ -630,7 +599,6 @@ impl<T> Encode for std::marker::PhantomData<T> {
 impl<T> Decode for std::marker::PhantomData<T> {
     /// Returns a PhantomData without reading any bytes.
     #[inline]
-    #[cfg_attr(test, mutate)]
     fn decode<R: Read>(_: R) -> Result<Self> {
         Ok(Self {})
     }
@@ -639,7 +607,6 @@ impl<T> Decode for std::marker::PhantomData<T> {
 impl<T> Terminated for std::marker::PhantomData<T> {}
 
 #[cfg(test)]
-use mutagen::mutate;
 mod tests {
     #[allow(unused_imports)]
     use super::*;
