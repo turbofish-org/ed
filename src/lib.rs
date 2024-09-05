@@ -67,6 +67,9 @@
 //! # }
 //! ```
 
+#![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
+
 use std::convert::TryInto;
 use std::io::{Read, Write};
 
@@ -75,10 +78,16 @@ pub use ed_derive::*;
 /// An enum that defines the `ed` error types.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    // TODO: more variants
+    /// An error that occurs when decoding a value and encountering a byte that
+    /// was not in a valid expected range.
     #[error("Unexpected byte: {0}")]
     UnexpectedByte(u8),
+    /// An error that occurs when encoding an enum value that does not have an
+    /// encoding defined.
     #[error("Unencodable variant")]
     UnencodableVariant,
+    /// An io error that occurs when reading or writing bytes.
     #[error(transparent)]
     IOError(#[from] std::io::Error),
 }
