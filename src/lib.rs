@@ -169,6 +169,8 @@ pub trait Decode: Sized {
 /// `decode` would have no way to know where to stop reading.
 pub trait Terminated {}
 
+/// Generates `Encode`, `Decode`, and `Terminated` impls for a fixed-size
+/// integer type.
 macro_rules! int_impl {
     ($type:ty, $length:expr) => {
         impl Encode for $type {
@@ -333,6 +335,7 @@ impl Decode for () {
 
 impl Terminated for () {}
 
+/// Generates `Encode`, `Decode`, and `Terminated` implementations for tuples.
 macro_rules! tuple_impl {
     ($( $type:ident ),*; $last_type:ident) => {
         impl<$($type: Encode + Terminated,)* $last_type: Encode> Encode for ($($type,)* $last_type,) {
