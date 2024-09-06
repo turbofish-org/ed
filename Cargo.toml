@@ -3,7 +3,7 @@ name = "ed"
 version = "0.3.0"
 authors = ["Turbofish <team@turbofish.org>"]
 edition = "2018"
-description = "A minimalist crate for deterministic binary encodings in Rust."
+description = "A minimalist crate for deterministic binary encodings ."
 license = "Apache-2.0"
 
 [dependencies]
