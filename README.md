@@ -64,7 +64,11 @@ Ed is an open-source project spearheaded by Turbofish. Anyone is able to contrib
 
 ## Security
 
-Ed is currently undergoing security audits.
+### Security Audits
+
+| Date | Auditor | Scope | Report |
+| ---: | :---: | :--- | :---: |
+| October 2024 | Trail of Bits | `orga` `merk` `ed` `abci2` | [📄](https://github.com/trailofbits/publications/blob/master/reviews/2024-11-orgaandmerk-securityreview.pdf) |
 
 Vulnerabilities should not be reported through public channels, including GitHub Issues. You can report a vulnerability via GitHub's Private Vulnerability Reporting or to Turbofish at `security@turbofish.org`.
 
